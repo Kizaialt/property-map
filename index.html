@@ -31,6 +31,10 @@ html, body{
   text-rendering: optimizeLegibility;
   color:var(--text);
 }
+  *{
+  font-synthesis: none;
+}
+
 
 #map{height:100vh;width:100vw}
 
@@ -241,7 +245,7 @@ html, body{
   </div>
 
   <div class="panelBody" id="panelBody">
-    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршил (сонгох/typing)"/>
+    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршилаар хайх"/>
     <datalist id="bairshilList"></datalist>
 
     <select class="select" id="type">
@@ -261,7 +265,7 @@ html, body{
         Cluster
       </label>
       <div style="color:var(--muted);font-weight:900;font-size:12px;">
-        (Auto-off when zoomed in)
+        (Ойртохоор pin гарч ирнэ)
       </div>
     </div>
   </div>
