@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>PROPERTY_INVENTORY</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800;900&display=swap&subset=cyrillic" rel="stylesheet">
-  
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+
+<!-- Cyrillic-safe font that handles ө/ү reliably -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
 :root{
@@ -25,16 +25,16 @@
 
 html, body{
   margin:0; height:100%;
-  font-family: "Noto Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: "Noto Sans", "Segoe UI", Arial, sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   color:var(--text);
 }
-  *{
-  font-synthesis: none;
+input, select, button, option{
+  font-family: "Noto Sans", "Segoe UI", Arial, sans-serif !important;
 }
-
+*{ font-synthesis: none; }
 
 #map{height:100vh;width:100vw}
 
@@ -92,7 +92,7 @@ html, body{
 }
 .switchWrap input{ transform: scale(1.1); }
 
-/* Mapon-style marker: colored pin + plain text (no label box) */
+/* Mapon-style marker: colored pin + plain text */
 .maponMarker{
   display:flex;
   align-items:center;
@@ -156,18 +156,14 @@ html, body{
 }
 .drawerClose:hover{ background:#f3f4f6; }
 
-/* Use dvh so mobile browser UI doesn't chop bottom */
 .drawerBody{
   padding:14px;
-  padding-bottom:48px; /* 👈 THIS is the key */
+  padding-bottom:48px; /* ensure last item fully visible */
   overflow-y:auto;
   height:calc(100dvh - 110px - 16px - 60px);
   box-sizing:border-box;
 }
-.drawerBody > .rowBox:last-child{
-  margin-bottom:24px;
-}
-
+.drawerBody > .rowBox:last-child{ margin-bottom:24px; }
 
 .section{ font-weight:950; margin:18px 0 10px; }
 .sectionCenter{ text-align:center; }
@@ -196,20 +192,10 @@ html, body{
   margin-top:10px;
   font-weight:950;
 }
-
-.rowBox span{
-  white-space:nowrap;
-}
-.rowBox span:first-child{
-  white-space:normal;
-}
-.rowBox span:nth-child(2){
-  color:var(--muted);
-  font-weight:900;
-}
-.rowBox span:last-child{
-  margin-left:auto;
-}
+.rowBox span{ white-space:nowrap; }
+.rowBox span:first-child{ white-space:normal; }
+.rowBox span:nth-child(2){ color:var(--muted); font-weight:900; }
+.rowBox span:last-child{ margin-left:auto; }
 
 .valueNormal{ font-weight:600; color:var(--text); }
 
@@ -245,14 +231,14 @@ html, body{
   </div>
 
   <div class="panelBody" id="panelBody">
-    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршилаар хайх"/>
+    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршил (сонгох/typing)"/>
     <datalist id="bairshilList"></datalist>
 
+    <!-- No "Хоёулаа" option -->
     <select class="select" id="type">
       <option value="">Төрөл (Бүгд)</option>
       <option value="борлуулах">Борлуулах</option>
       <option value="түрээслэх">Түрээс</option>
-      <option value="хоёулаа">Хоёулаа</option>
     </select>
 
     <select class="select" id="pay">
@@ -262,10 +248,10 @@ html, body{
     <div class="rowInline">
       <label class="switchWrap">
         <input type="checkbox" id="clusterToggle">
-        Багцлах
+        Cluster
       </label>
       <div style="color:var(--muted);font-weight:900;font-size:12px;">
-        (Ойртохоор pin гарч ирнэ)
+        (Auto-off when zoomed in)
       </div>
     </div>
   </div>
@@ -283,8 +269,8 @@ html, body{
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
 <script>
-/* ========= CONFIG: ONLY CHANGE THIS ========= */
-const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLhOSG9iK7anYVUc54lw7z7Ze9g-sgvWTjW9OM-0fuVz-mCgi_3AF2SHS4RKUKSSx-qFYVeSzWU7G_8AebpMUgEMm9d3bGAr6NzRzt-653eaNWnrY6QKS42v5EKEgXsjtDnVunD9J9UQsE08i2W-uxhlRoudgEkqgbVZt5NfAS_D2p1H15szKh10bv6025VvoQWZUpWcH8xeOiYuykg-sMNBsPxGY04wNINO9RPHlHuMKW2MT8TYCscLzgzRfDW1RzUQRxCPH5drzJAzNT5pCPinm_SFVg&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
+/* ========= CONFIG ========= */
+const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
 /* ========= MAP ========= */
 const map = L.map("map").setView([47.918,106.917], 11);
@@ -300,7 +286,7 @@ mapToggle.onclick = () => {
   else { map.removeLayer(sat); map.addLayer(clean); mapToggle.textContent = "🛰"; }
 };
 
-/* ========= UI DOM ========= */
+/* ========= UI ========= */
 const collapseBtn = document.getElementById("collapseBtn");
 const panelBody = document.getElementById("panelBody");
 collapseBtn.onclick = () => panelBody.classList.toggle("hidden");
@@ -324,7 +310,7 @@ const norm = v => String(v ?? "").trim().toLowerCase();
 
 function money(v){
   if (v === null || v === undefined || v === "") return "-";
-  const n = Number(v);
+  const n = Number(String(v).toString().replace(",", "."));
   if (!Number.isFinite(n)) return esc(String(v));
   return n.toLocaleString() + " ₮";
 }
@@ -340,9 +326,9 @@ function torolLabel(torol){
 }
 function torolPinColor(torol){
   const t = norm(torol);
-  if (t === "борлуулах") return "#ef4444";                 // red
-  if (t === "түрээслэх" || t === "түрээс") return "#22c55e"; // green
-  return "#3b82f6"; // blue
+  if (t === "борлуулах") return "#ef4444";
+  if (t === "түрээслэх" || t === "түрээс") return "#22c55e";
+  return "#3b82f6"; // хоёулаа (still exists in data)
 }
 function chipClassForTorol(torol){
   const t = norm(torol);
@@ -381,16 +367,14 @@ clusterToggle.onchange = () => {
 /* ========= MARKER ========= */
 function makeMarker(item){
   const title = esc(item.nershil || "");
-
-  // Put ҮХ Төрөл (e.g., Байр) onto the pin label (NOT popup)
-  const uh = String(item.uhTorol ?? "").trim();
+  const uh = String(item.uhTorol ?? "").trim(); // "Байр" on pin label
 
   const m2 = item.m2 ? `${esc(item.m2)}м²` : "";
   const uruu = (item.uruu !== null && item.uruu !== undefined && String(item.uruu).trim() !== "")
     ? `${esc(item.uruu)} өрөө` : "";
 
   const info = [m2, uruu].filter(Boolean).join(" | ");
-  const sub = [uh, info].filter(Boolean).join(" • "); // Байр • 55м² | 2 өрөө
+  const sub = [uh, info].filter(Boolean).join(" • ");
 
   const pinColor = torolPinColor(item.torol);
 
@@ -421,12 +405,7 @@ function makeMarker(item){
   });
 }
 
-/* ========= POPUP (white box) ========= */
-/* Requirement:
-   - Remove "Байр" from popup (uhTorol removed)
-   - Remove "Гэмтэл" completely
-   - Show "55м² | 2 өрөө" in popup instead
-*/
+/* ========= POPUP ========= */
 function popupHTML(i){
   const m2 = i.m2 ? `${i.m2}м²` : "";
   const uruu = (i.uruu !== null && i.uruu !== undefined && String(i.uruu).trim() !== "")
@@ -518,10 +497,31 @@ function matchesFilters(item){
   const bair = norm(bairshilSearch.value);
   const torol = norm(typeEl.value);
   const pay = norm(payEl.value);
+  const itTorol = norm(item.torol);
+  const itPay = norm(item.tolborNohtsol);
 
   if (bair && norm(item.bairshil) !== bair) return false;
-  if (torol && norm(item.torol) !== torol) return false;
-  if (pay && norm(item.tolborNohtsol) !== pay) return false;
+
+  // Torol filter: show only Borлуулах / Түрээс, but include "хоёулаа" in both
+  if (torol) {
+    if (torol === "борлуулах") {
+      if (!(itTorol === "борлуулах" || itTorol === "хоёулаа")) return false;
+    } else if (torol === "түрээслэх" || torol === "түрээс") {
+      if (!(itTorol === "түрээслэх" || itTorol === "түрээс" || itTorol === "хоёулаа")) return false;
+    } else {
+      if (itTorol !== torol) return false;
+    }
+  }
+
+  // Payment filter: choosing "Бэлэн мөнгө" matches "Бэлэн мөнгө болон Банк" too
+  if (pay) {
+    if (pay === "бэлэн мөнгө") {
+      if (!itPay.includes("бэлэн мөнгө")) return false;
+    } else {
+      if (itPay !== pay) return false;
+    }
+  }
+
   return true;
 }
 
@@ -539,14 +539,12 @@ function render(){
   for (const i of filtered){
     const m = makeMarker(i);
     m.bindPopup(popupHTML(i), { closeButton:true });
-
     m.on("popupopen", (e) => {
       const el = e.popup.getElement();
       if (!el) return;
       el.style.cursor = "pointer";
       el.onclick = () => openDrawer(i);
     });
-
     layer.addLayer(m);
   }
 }
@@ -568,7 +566,6 @@ fetch(API_URL)
   .then(data => {
     const arr = Array.isArray(data) ? data : [];
 
-    // robust lat/lng mapping (so pins don't "disappear")
     ALL = arr.map(x => {
       const lat = toNumber(x.lat ?? x.Lat ?? x.latitude ?? x.LAT);
       const lng = toNumber(x.lng ?? x.long ?? x.Long ?? x.longitude ?? x.LNG ?? x.LON);
@@ -579,8 +576,12 @@ fetch(API_URL)
     const bairSet = new Set(ALL.map(x => (x.bairshil || "").trim()).filter(Boolean));
     bairshilList.innerHTML = [...bairSet].sort().map(v => `<option value="${esc(v)}">`).join("");
 
-    // Төлбөрийн нөхцөл select
+    // Төлбөрийн нөхцөл dropdown:
+    // - includes all unique values
+    // - force-add "Бэлэн мөнгө" so it exists even if not exact in sheet
     const paySet = new Set(ALL.map(x => (x.tolborNohtsol || "").trim()).filter(Boolean));
+    paySet.add("Бэлэн мөнгө");
+
     payEl.innerHTML =
       `<option value="">Төлбөрийн нөхцөл (Бүгд)</option>` +
       [...paySet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
