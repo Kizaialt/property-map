@@ -4,25 +4,15 @@
   <meta charset="utf-8" />
   <title>Property Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     body { margin:0; font-family: system-ui, Arial; }
     #wrap { display:flex; height:100vh; }
-    #map { flex: 1; }
-    #panel {
-      width: 360px;
-      max-width: 90vw;
-      border-left: 1px solid #e5e5e5;
-      padding: 12px;
-      overflow:auto;
-      background:#fff;
-    }
+    #map { flex:1; }
+    #panel { width:360px; max-width:90vw; border-left:1px solid #e5e5e5; padding:12px; overflow:auto; background:#fff; }
     .item { padding:10px; border:1px solid #eee; border-radius:10px; margin-bottom:10px; cursor:pointer; }
-    .muted { color:#666; font-size: 12px; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; margin: 8px 0; }
-    .tag { font-size:12px; padding:4px 8px; border-radius:999px; background:#f3f3f3; }
-    input, select { width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin: 6px 0 12px; }
-    a { word-break: break-all; }
+    .muted { color:#666; font-size:12px; }
+    input, select { width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin:6px 0 12px; }
   </style>
 </head>
 <body>
@@ -35,161 +25,107 @@
     <input id="q" placeholder="Search by name / location / id" />
 
     <label class="muted">Filter by Status</label>
-    <select id="status">
-      <option value="">All</option>
-    </select>
+    <select id="status"><option value="">All</option></select>
 
     <div id="list"></div>
-    <hr />
-    <div class="muted">
-      Tip: click a marker or a card to open details.
-    </div>
   </div>
 </div>
 
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  // 1) Put your Mapbox token here
-  mapboxgl.accessToken = "PUT_YOUR_MAPBOX_PUBLIC_TOKEN_HERE";
+  const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLiCuH3dh5VUFid0yWs8uaFmkqbjDTX47y-ixvibwyv0OzaWVx1cUosgWH-la9AYhNjSkSMheP5DNQKKu-Hoq8_uuXKQmZnL1kWQs78aqrzUMhFyPYKcGSx_ej1Ean6rYnmLnngyYuaPEoVFfaS3UbO7w10wkmZ9GiOMDW8XK1cgiwkwcAiJ5rVpeIuJJvn2p5Jn8meLbDBBmnM0RzEi_mOf3biyDL59mUY8EQYV6KfZbHPCAGuBWMMVDWgKjUN_utMxX6vxYc2YNArCqE5M_-hT-f5XUg&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
 
-  // 2) Put your Apps Script Web App URL here
-  const API_URL = "PUT_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+  const map = L.map("map").setView([47.918, 106.917], 11);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
 
-  const map = new mapboxgl.Map({
-    container: "map",
-    style: "mapbox://styles/mapbox/streets-v12",
-    center: [106.917, 47.918], // UB-ish default
-    zoom: 11
-  });
-
-  const listEl = document.getElementById("list");
   const qEl = document.getElementById("q");
   const statusEl = document.getElementById("status");
+  const listEl = document.getElementById("list");
 
   let all = [];
-  let markers = [];
+  let layer = L.layerGroup().addTo(map);
 
-  function clearMarkers() {
-    for (const m of markers) m.remove();
-    markers = [];
+  function escapeHtml(s){return String(s ?? "").replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));}
+
+  function renderStatusOptions(items){
+    const set = new Set(items.map(x => (x.status||"").trim()).filter(Boolean));
+    statusEl.innerHTML = '<option value="">All</option>' + [...set].sort().map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
   }
 
-  function renderStatusOptions(items) {
-    const set = new Set(items.map(x => (x.status || "").trim()).filter(Boolean));
-    statusEl.innerHTML = '<option value="">All</option>' + [...set].sort().map(s =>
-      `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`
-    ).join("");
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[c]));
-  }
-
-  function itemMatches(item, q, st) {
+  function matches(item, q, st){
     if (st && String(item.status).trim() !== st) return false;
     if (!q) return true;
-    const hay = [
-      item.id, item.name, item.location, item.type, item.subType
-    ].join(" ").toLowerCase();
+    const hay = [item.propertyId, item.nershil, item.location, item.torol, item.uhTorol].join(" ").toLowerCase();
     return hay.includes(q.toLowerCase());
   }
 
-  function flyTo(item) {
-    map.flyTo({ center: [item.lng, item.lat], zoom: 14 });
+  function show(item){
+    map.setView([item.lat, item.lng], 14);
+    L.popup()
+      .setLatLng([item.lat, item.lng])
+      .setContent(`
+        <div style="min-width:220px">
+          <div style="font-weight:700">${escapeHtml(item.nershil || item.propertyId)}</div>
+          <div class="muted">${escapeHtml(item.location||"")}</div>
+          ${item.une ? `<div><b>Үнэ:</b> ${escapeHtml(item.une)}</div>` : ""}
+          ${item.tureesUne ? `<div><b>Түрээс:</b> ${escapeHtml(item.tureesUne)}</div>` : ""}
+          ${item.uneguiLink ? `<div><a href="${escapeHtml(item.uneguiLink)}" target="_blank">Open link</a></div>` : ""}
+          <div class="muted" style="margin-top:6px">(${item.lat.toFixed(5)}, ${item.lng.toFixed(5)})</div>
+        </div>
+      `)
+      .openOn(map);
   }
 
-  function popupHtml(item) {
-    const price = item.price ? `<div><b>Үнэ:</b> ${escapeHtml(item.price)}</div>` : "";
-    const link = item.link ? `<div><a href="${escapeHtml(item.link)}" target="_blank">Open link</a></div>` : "";
-    return `
-      <div style="min-width:220px">
-        <div style="font-weight:700">${escapeHtml(item.name || item.id)}</div>
-        <div class="muted">${escapeHtml(item.location || "")}</div>
-        <div style="margin-top:6px">${price}</div>
-        <div class="muted" style="margin-top:6px">(${item.lat.toFixed(5)}, ${item.lng.toFixed(5)})</div>
-        ${link}
-      </div>
-    `;
-  }
-
-  function render(items) {
+  function render(items){
     listEl.innerHTML = "";
-    clearMarkers();
+    layer.clearLayers();
 
-    if (!items.length) {
+    if (!items.length){
       listEl.innerHTML = `<div class="muted">No matches.</div>`;
       return;
     }
 
-    // markers
-    for (const item of items) {
-      const marker = new mapboxgl.Marker()
-        .setLngLat([item.lng, item.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 20 }).setHTML(popupHtml(item)))
-        .addTo(map);
+    const bounds = [];
+    for (const item of items){
+      const m = L.marker([item.lat, item.lng]).addTo(layer);
+      m.on("click", () => show(item));
+      bounds.push([item.lat, item.lng]);
 
-      marker.getElement().addEventListener("click", () => flyTo(item));
-      markers.push(marker);
-    }
-
-    // cards
-    for (const item of items) {
       const div = document.createElement("div");
       div.className = "item";
       div.innerHTML = `
-        <div style="font-weight:700">${escapeHtml(item.name || item.id)}</div>
-        <div class="muted">${escapeHtml(item.location || "")}</div>
-        <div class="row">
-          ${item.status ? `<span class="tag">${escapeHtml(item.status)}</span>` : ""}
-          ${item.type ? `<span class="tag">${escapeHtml(item.type)}</span>` : ""}
-          ${item.subType ? `<span class="tag">${escapeHtml(item.subType)}</span>` : ""}
-        </div>
-        ${item.price ? `<div><b>Үнэ:</b> ${escapeHtml(item.price)}</div>` : ""}
-        <div class="muted">${escapeHtml(item.id || "")}</div>
+        <div style="font-weight:700">${escapeHtml(item.nershil || item.propertyId)}</div>
+        <div class="muted">${escapeHtml(item.location||"")}</div>
+        <div class="muted">${escapeHtml(item.propertyId||"")}</div>
       `;
-      div.addEventListener("click", () => {
-        flyTo(item);
-        new mapboxgl.Popup({ offset: 20 })
-          .setLngLat([item.lng, item.lat])
-          .setHTML(popupHtml(item))
-          .addTo(map);
-      });
+      div.addEventListener("click", () => show(item));
       listEl.appendChild(div);
     }
+
+    if (bounds.length) map.fitBounds(bounds, { padding:[40,40] });
   }
 
-  function applyFilters() {
+  function apply(){
     const q = qEl.value.trim();
     const st = statusEl.value;
-    const filtered = all.filter(x => itemMatches(x, q, st));
-    render(filtered);
+    render(all.filter(x => matches(x, q, st)));
   }
 
-  async function load() {
-    const res = await fetch(API_URL, { cache: "no-store" });
+  async function load(){
+    const res = await fetch(API_URL, { cache:"no-store" });
     all = await res.json();
-
-    // optional: auto-fit to markers
-    if (all.length) {
-      const bounds = new mapboxgl.LngLatBounds();
-      for (const p of all) bounds.extend([p.lng, p.lat]);
-      map.fitBounds(bounds, { padding: 40, maxZoom: 14 });
-    }
-
     renderStatusOptions(all);
-    applyFilters();
+    apply();
   }
 
-  qEl.addEventListener("input", applyFilters);
-  statusEl.addEventListener("change", applyFilters);
+  qEl.addEventListener("input", apply);
+  statusEl.addEventListener("change", apply);
 
   load().catch(err => {
-    listEl.innerHTML = `<div style="color:#b00">
-      Failed to load data. Check API_URL and permissions.<br><br>
-      ${escapeHtml(err.message)}
-    </div>`;
+    listEl.innerHTML = `<div style="color:#b00">Failed to load data: ${escapeHtml(err.message)}</div>`;
   });
 </script>
 </body>
