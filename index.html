@@ -144,7 +144,7 @@
         <select id="type" class="select">
           <option value="">Төрөл (Бүгд)</option>
           <option value="борлуулах">Борлуулах</option>
-          <option value="түрээслэх">Түрээслэх</option>
+          <option value="Түрээс">Түрээс</option>
           <option value="хоёулаа">Хоёулаа</option>
         </select>
         <select id="mapStyle" class="select">
@@ -155,7 +155,7 @@
 
       <div style="font-weight:900; font-size:12px; color:var(--muted); margin-top:6px;">Fill: Төрөл</div>
       <div class="miniRow"><span class="dot red"></span> Борлуулах</div>
-      <div class="miniRow"><span class="dot green"></span> Түрээслэх</div>
+      <div class="miniRow"><span class="dot green"></span> Түрээс</div>
       <div class="miniRow"><span class="dot blue"></span> Хоёулаа</div>
     </div>
 
@@ -203,7 +203,7 @@
     }
     const ICONS = {
       "борлуулах": makeIcon("red"),
-      "түрээслэх": makeIcon("green"),
+      "Түрээс": makeIcon("green"),
       "хоёулаа": makeIcon("blue")
     };
     const DEFAULT_ICON = ICONS["хоёулаа"];
@@ -241,7 +241,7 @@
     const chipClassForTorol = (t) => {
       t = (t || "").toLowerCase();
       if (t === "борлуулах") return "red";
-      if (t === "түрээслэх") return "green";
+      if (t === "Түрээс") return "green";
       return "blue";
     };
 
