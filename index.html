@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Property Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <style>
+    body { margin:0; font-family: system-ui, Arial; }
+    #wrap { display:flex; height:100vh; }
+    #map { flex: 1; }
+    #panel {
+      width: 360px;
+      max-width: 90vw;
+      border-left: 1px solid #e5e5e5;
+      padding: 12px;
+      overflow:auto;
+      background:#fff;
+    }
+    .item { padding:10px; border:1px solid #eee; border-radius:10px; margin-bottom:10px; cursor:pointer; }
+    .muted { color:#666; font-size: 12px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin: 8px 0; }
+    .tag { font-size:12px; padding:4px 8px; border-radius:999px; background:#f3f3f3; }
+    input, select { width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin: 6px 0 12px; }
+    a { word-break: break-all; }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <div id="map"></div>
+  <div id="panel">
+    <h3 style="margin:0 0 10px;">Listings</h3>
+
+    <label class="muted">Search</label>
+    <input id="q" placeholder="Search by name / location / id" />
+
+    <label class="muted">Filter by Status</label>
+    <select id="status">
+      <option value="">All</option>
+    </select>
+
+    <div id="list"></div>
+    <hr />
+    <div class="muted">
+      Tip: click a marker or a card to open details.
+    </div>
+  </div>
+</div>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script>
+  // 1) Put your Mapbox token here
+  mapboxgl.accessToken = "PUT_YOUR_MAPBOX_PUBLIC_TOKEN_HERE";
+
+  // 2) Put your Apps Script Web App URL here
+  const API_URL = "PUT_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+  const map = new mapboxgl.Map({
+    container: "map",
+    style: "mapbox://styles/mapbox/streets-v12",
+    center: [106.917, 47.918], // UB-ish default
+    zoom: 11
+  });
+
+  const listEl = document.getElementById("list");
+  const qEl = document.getElementById("q");
+  const statusEl = document.getElementById("status");
+
+  let all = [];
+  let markers = [];
+
+  function clearMarkers() {
+    for (const m of markers) m.remove();
+    markers = [];
+  }
+
+  function renderStatusOptions(items) {
+    const set = new Set(items.map(x => (x.status || "").trim()).filter(Boolean));
+    statusEl.innerHTML = '<option value="">All</option>' + [...set].sort().map(s =>
+      `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`
+    ).join("");
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[c]));
+  }
+
+  function itemMatches(item, q, st) {
+    if (st && String(item.status).trim() !== st) return false;
+    if (!q) return true;
+    const hay = [
+      item.id, item.name, item.location, item.type, item.subType
+    ].join(" ").toLowerCase();
+    return hay.includes(q.toLowerCase());
+  }
+
+  function flyTo(item) {
+    map.flyTo({ center: [item.lng, item.lat], zoom: 14 });
+  }
+
+  function popupHtml(item) {
+    const price = item.price ? `<div><b>Үнэ:</b> ${escapeHtml(item.price)}</div>` : "";
+    const link = item.link ? `<div><a href="${escapeHtml(item.link)}" target="_blank">Open link</a></div>` : "";
+    return `
+      <div style="min-width:220px">
+        <div style="font-weight:700">${escapeHtml(item.name || item.id)}</div>
+        <div class="muted">${escapeHtml(item.location || "")}</div>
+        <div style="margin-top:6px">${price}</div>
+        <div class="muted" style="margin-top:6px">(${item.lat.toFixed(5)}, ${item.lng.toFixed(5)})</div>
+        ${link}
+      </div>
+    `;
+  }
+
+  function render(items) {
+    listEl.innerHTML = "";
+    clearMarkers();
+
+    if (!items.length) {
+      listEl.innerHTML = `<div class="muted">No matches.</div>`;
+      return;
+    }
+
+    // markers
+    for (const item of items) {
+      const marker = new mapboxgl.Marker()
+        .setLngLat([item.lng, item.lat])
+        .setPopup(new mapboxgl.Popup({ offset: 20 }).setHTML(popupHtml(item)))
+        .addTo(map);
+
+      marker.getElement().addEventListener("click", () => flyTo(item));
+      markers.push(marker);
+    }
+
+    // cards
+    for (const item of items) {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <div style="font-weight:700">${escapeHtml(item.name || item.id)}</div>
+        <div class="muted">${escapeHtml(item.location || "")}</div>
+        <div class="row">
+          ${item.status ? `<span class="tag">${escapeHtml(item.status)}</span>` : ""}
+          ${item.type ? `<span class="tag">${escapeHtml(item.type)}</span>` : ""}
+          ${item.subType ? `<span class="tag">${escapeHtml(item.subType)}</span>` : ""}
+        </div>
+        ${item.price ? `<div><b>Үнэ:</b> ${escapeHtml(item.price)}</div>` : ""}
+        <div class="muted">${escapeHtml(item.id || "")}</div>
+      `;
+      div.addEventListener("click", () => {
+        flyTo(item);
+        new mapboxgl.Popup({ offset: 20 })
+          .setLngLat([item.lng, item.lat])
+          .setHTML(popupHtml(item))
+          .addTo(map);
+      });
+      listEl.appendChild(div);
+    }
+  }
+
+  function applyFilters() {
+    const q = qEl.value.trim();
+    const st = statusEl.value;
+    const filtered = all.filter(x => itemMatches(x, q, st));
+    render(filtered);
+  }
+
+  async function load() {
+    const res = await fetch(API_URL, { cache: "no-store" });
+    all = await res.json();
+
+    // optional: auto-fit to markers
+    if (all.length) {
+      const bounds = new mapboxgl.LngLatBounds();
+      for (const p of all) bounds.extend([p.lng, p.lat]);
+      map.fitBounds(bounds, { padding: 40, maxZoom: 14 });
+    }
+
+    renderStatusOptions(all);
+    applyFilters();
+  }
+
+  qEl.addEventListener("input", applyFilters);
+  statusEl.addEventListener("change", applyFilters);
+
+  load().catch(err => {
+    listEl.innerHTML = `<div style="color:#b00">
+      Failed to load data. Check API_URL and permissions.<br><br>
+      ${escapeHtml(err.message)}
+    </div>`;
+  });
+</script>
+</body>
+</html>
