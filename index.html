@@ -4,234 +4,122 @@
   <meta charset="utf-8" />
   <title>Property Inventory Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
   <style>
     :root{
-      --bg:#ffffff;
-      --text:#111827;
-      --muted:#6b7280;
-      --border:#e5e7eb;
+      --bg:#ffffff; --text:#111827; --muted:#6b7280; --border:#e5e7eb;
       --shadow: 0 10px 25px rgba(0,0,0,.12);
-      --radius:14px;
-      --chipRadius:10px;
-      --rowGap:14px;
-      --panelW: 420px;
+      --radius:14px; --chipRadius:10px; --panelW: 420px;
     }
     *{ box-sizing:border-box; }
-    html,body{ height:100%; margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--text); }
+    html,body{ height:100%; margin:0; font-family: system-ui, Segoe UI, Roboto, Arial; color:var(--text); }
     #map{ height:100vh; width:100vw; }
 
-    /* Right floating "legend/layer" card (like Mapon) */
     .floatingCard{
-      position: fixed;
-      right: 18px;
-      top: 120px;
-      width: 320px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      z-index: 9999;
+      position: fixed; right: 18px; top: 120px; width: 320px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow:hidden; z-index: 9999;
     }
     .floatingHeader{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding: 12px 12px;
-      border-bottom:1px solid var(--border);
-      font-weight:700;
-      font-size:13px;
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 12px; border-bottom:1px solid var(--border);
+      font-weight:800; font-size:13px;
     }
     .floatingBody{ padding: 12px; }
-    .miniRow{ display:flex; align-items:center; gap:10px; margin: 10px 0; font-size:13px; }
+    .controls{ display:grid; gap:10px; margin-bottom:12px; }
+    .miniRow{ display:flex; align-items:center; gap:10px; margin: 10px 0; font-size:13px; font-weight:700; }
     .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
     .dot.red{ background:#ef4444; }
     .dot.green{ background:#22c55e; }
     .dot.blue{ background:#3b82f6; }
-    .dot.purple{ background:#a855f7; }
 
     .floatingFooter{
-      padding: 12px;
-      border-top:1px solid var(--border);
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
+      padding: 12px; border-top:1px solid var(--border);
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
     }
+
     .btn{
-      appearance:none;
       border: 1px solid var(--border);
       background: #fff;
       padding: 10px 12px;
       border-radius: 12px;
       cursor:pointer;
-      font-weight:600;
+      font-weight:700;
       font-size:13px;
     }
-    .btnPrimary{
-      background:#2563eb;
-      border-color:#2563eb;
-      color:#fff;
-    }
-    .input{
-      width:100%;
-      padding: 10px 12px;
-      border-radius:12px;
-      border:1px solid var(--border);
-      outline:none;
-      font-size:13px;
-    }
-    .select{
-      width:100%;
-      padding: 10px 12px;
-      border-radius:12px;
-      border:1px solid var(--border);
+    .btnPrimary{ background:#2563eb; border-color:#2563eb; color:#fff; }
+
+    .input,.select{
+      width:100%; padding: 10px 12px; border-radius:12px;
+      border:1px solid var(--border); outline:none; font-size:13px;
       background:#fff;
-      font-size:13px;
-      outline:none;
-    }
-    .controls{
-      display:grid;
-      gap:10px;
-      margin-bottom:12px;
     }
 
-    /* Details Drawer (Mapon-like right panel) */
     .drawer{
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      top: 120px;
-      width: var(--panelW);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      z-index: 10000;
-      display:none;
-      overflow:hidden;
+      position: fixed; right: 18px; bottom: 18px; top: 120px;
+      width: var(--panelW); background: var(--bg);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); z-index: 10000;
+      display:none; overflow:hidden;
     }
     .drawerHeader{
-      padding: 14px 14px;
-      border-bottom:1px solid var(--border);
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
+      padding: 14px; border-bottom:1px solid var(--border);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
     }
-    .drawerTitle{
-      font-weight:800;
-      font-size:16px;
-      line-height:1.15;
-    }
+    .drawerTitle{ font-weight:900; font-size:16px; line-height:1.15; }
     .drawerClose{
-      cursor:pointer;
-      border:none;
-      background:transparent;
-      font-size:18px;
-      line-height:1;
-      padding: 6px 10px;
-      border-radius:10px;
+      cursor:pointer; border:none; background:transparent; font-size:18px;
+      padding: 6px 10px; border-radius:10px;
     }
     .drawerClose:hover{ background:#f3f4f6; }
-
-    .drawerBody{
-      height: calc(100% - 62px);
-      overflow:auto;
-      padding: 14px;
-    }
+    .drawerBody{ height: calc(100% - 62px); overflow:auto; padding: 14px; }
 
     .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
     .chip{
-      padding: 7px 10px;
-      border-radius: var(--chipRadius);
-      font-size: 12px;
-      font-weight:700;
-      border: 1px solid var(--border);
+      padding: 7px 10px; border-radius: var(--chipRadius);
+      font-size: 12px; font-weight:800; border: 1px solid var(--border);
       background:#f9fafb;
     }
     .chip.red{ background:#fee2e2; border-color:#fecaca; color:#991b1b; }
     .chip.green{ background:#dcfce7; border-color:#bbf7d0; color:#166534; }
     .chip.blue{ background:#dbeafe; border-color:#bfdbfe; color:#1e40af; }
     .chip.gray{ background:#f3f4f6; border-color:#e5e7eb; color:#111827; }
-    .chip.purple{ background:#f3e8ff; border-color:#e9d5ff; color:#6b21a8; }
     .chip.orange{ background:#ffedd5; border-color:#fed7aa; color:#9a3412; }
 
     .field{
-      display:grid;
-      grid-template-columns: 26px 1fr;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid #f1f5f9;
+      display:grid; grid-template-columns: 26px 1fr;
+      gap: 10px; padding: 10px 0; border-bottom: 1px solid #f1f5f9;
       align-items:center;
     }
     .icon{
-      width:26px;
-      height:26px;
-      border-radius:8px;
-      background:#f3f4f6;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:12px;
-      color:#374151;
-      font-weight:800;
+      width:26px; height:26px; border-radius:8px; background:#f3f4f6;
+      display:flex; align-items:center; justify-content:center;
+      font-size:12px; color:#374151; font-weight:900;
     }
-    .label{ color:var(--muted); font-size:12px; font-weight:700; }
-    .value{ font-size:13px; font-weight:700; margin-top:2px; }
+    .label{ color:var(--muted); font-size:12px; font-weight:800; }
+    .value{ font-size:13px; font-weight:800; margin-top:2px; }
 
     .checks{
-      display:flex;
-      gap:18px;
-      padding: 10px 0;
-      border-bottom: 1px solid #f1f5f9;
-      align-items:center;
+      display:flex; gap:18px; padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9; align-items:center;
     }
-    .checkItem{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      font-size:13px;
-      font-weight:700;
-    }
+    .checkItem{ display:flex; gap:10px; align-items:center; font-size:13px; font-weight:800; }
     .box{
-      width:16px; height:16px;
-      border:1px solid #cbd5e1;
-      border-radius:4px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
+      width:16px; height:16px; border:1px solid #cbd5e1;
+      border-radius:4px; display:inline-flex; align-items:center; justify-content:center;
       background:#fff;
     }
-    .box.checked{
-      background:#111827;
-      border-color:#111827;
-      color:#fff;
-      font-size:12px;
-    }
+    .box.checked{ background:#111827; border-color:#111827; color:#fff; font-size:12px; }
 
-    /* Leaflet popup style to match Mapon small card */
-    .leaflet-popup-content-wrapper{
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-    }
-    .leaflet-popup-content{
-      margin: 12px;
-      min-width: 240px;
-      font-size:13px;
-    }
-    .popupTop{
-      font-weight:800;
-      font-size:15px;
-    }
-    .popupSub{ color:var(--muted); margin-top:4px; }
+    .leaflet-popup-content-wrapper{ border-radius: 14px; box-shadow: var(--shadow); }
+    .leaflet-popup-content{ margin: 12px; min-width: 240px; font-size:13px; }
+    .popupTop{ font-weight:900; font-size:15px; }
+    .popupSub{ color:var(--muted); margin-top:6px; }
     .popupChips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
     .popupHint{ margin-top:10px; color:var(--muted); font-size:12px; }
 
-    /* Map controls spacing so floating cards don't overlap too much */
     .leaflet-top.leaflet-right{ margin-top: 70px; }
 
     @media (max-width: 900px){
@@ -244,11 +132,10 @@
 <body>
   <div id="map"></div>
 
-  <!-- Floating layer/legend card -->
-  <div class="floatingCard" id="layerCard">
+  <div class="floatingCard">
     <div class="floatingHeader">
       <div>PROPERTY_INVENTORY</div>
-      <div style="color:var(--muted); font-weight:700; font-size:12px;">⚙</div>
+      <div style="color:var(--muted); font-weight:800; font-size:12px;">⚙</div>
     </div>
 
     <div class="floatingBody">
@@ -266,8 +153,7 @@
         </select>
       </div>
 
-      <div style="font-weight:800; font-size:12px; color:var(--muted); margin-top:6px;">Fill: Төрөл</div>
-
+      <div style="font-weight:900; font-size:12px; color:var(--muted); margin-top:6px;">Fill: Төрөл</div>
       <div class="miniRow"><span class="dot red"></span> Борлуулах</div>
       <div class="miniRow"><span class="dot green"></span> Түрээслэх</div>
       <div class="miniRow"><span class="dot blue"></span> Хоёулаа</div>
@@ -275,12 +161,11 @@
 
     <div class="floatingFooter">
       <button class="btn" id="fitBtn">Fit</button>
-      <div style="color:var(--muted); font-size:12px; font-weight:700;" id="countLabel">0</div>
+      <div style="color:var(--muted); font-size:12px; font-weight:900;" id="countLabel">0</div>
       <button class="btn btnPrimary" id="closeDrawerBtn">Details</button>
     </div>
   </div>
 
-  <!-- Right details drawer -->
   <div class="drawer" id="drawer">
     <div class="drawerHeader">
       <div>
@@ -294,11 +179,10 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // 🔴 Replace with your Apps Script Web App URL
-    const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLglH5rckVu0cbcs6KpZ3LryYxfljMBKpb8zYNwV5UPlth3rx8lANXJ3e_f7j4y4ledPlBUy1i6czLuWVjO6mTipniRLfaLP5hl3K8O2KbkokF0ke2ju6Y77flMQDDY3KOxpa4dY5GbMIXosSDoU1aOnOwTPycb3greNoXO0IOeT6Y-oBxyefPOSX3pRfwno49LQHKjrmjMdfk5-UaeBbZmIO5w0mXDFLGoas9iWrqcxCV827Glc8gyEBOp9gx24YDPONg_QzfvSaoTOZCvdBj-g-0s4nQ&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
+    // ✅ PASTE YOUR APPS SCRIPT WEB APP URL HERE
+    const API_URL = "https://script.google.com/macros/s/AKfycbxwYGefjxjF1z8zwSHBpGlymn81OMIJIThZVW7JhVeWGNL1_91KG52k1438NcceElAC/exec";
 
-    // --- Map init
-    const map = L.map("map", { zoomControl: true }).setView([47.918, 106.917], 11);
+    const map = L.map("map").setView([47.918, 106.917], 11);
 
     const cleanLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19, attribution: "© OpenStreetMap"
@@ -308,7 +192,6 @@
       maxZoom: 19, attribution: "© Esri"
     });
 
-    // --- Colored marker icons (same as before)
     function makeIcon(color){
       return new L.Icon({
         iconUrl:`https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
@@ -325,7 +208,6 @@
     };
     const DEFAULT_ICON = ICONS["хоёулаа"];
 
-    // --- DOM
     const qEl = document.getElementById("q");
     const typeEl = document.getElementById("type");
     const mapStyleEl = document.getElementById("mapStyle");
@@ -339,13 +221,11 @@
     const dChips = document.getElementById("dChips");
     const drawerBody = document.getElementById("drawerBody");
 
-    // --- State
     let all = [];
     let filtered = [];
     let markersLayer = L.layerGroup().addTo(map);
     let currentItem = null;
 
-    // --- Helpers
     const escapeHtml = s =>
       String(s ?? "").replace(/[&<>"']/g, c => ({
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
@@ -378,16 +258,13 @@
     function itemMatches(item, q, t){
       if (t && (item.torol || "").toLowerCase() !== t) return false;
       if (!q) return true;
-      const hay = [
-        item.propertyId, item.nershil, item.location, item.uhTorol, item.bairshil
-      ].join(" ").toLowerCase();
+      const hay = [item.propertyId, item.nershil, item.bairshil, item.uhTorol].join(" ").toLowerCase();
       return hay.includes(q.toLowerCase());
     }
 
     function fitTo(items){
       if (!items.length) return;
-      const b = L.latLngBounds(items.map(x => [x.lat, x.lng]));
-      map.fitBounds(b, { padding: [40,40], maxZoom: 14 });
+      map.fitBounds(L.latLngBounds(items.map(x => [x.lat, x.lng])), { padding:[40,40], maxZoom:14 });
     }
 
     function popupHTML(item){
@@ -399,7 +276,7 @@
         <div>
           <div class="popupTop">${escapeHtml(item.propertyId || "")}</div>
           <div class="popupChips">${torolChip}${uhChip}${baiChip}</div>
-          <div class="popupSub" style="margin-top:10px;">${escapeHtml(item.nershil || "")}</div>
+          <div class="popupSub">${escapeHtml(item.nershil || "")}</div>
           <div class="popupHint">Click to open details →</div>
         </div>
       `;
@@ -410,26 +287,33 @@
       drawer.style.display = "block";
 
       dTitle.textContent = item.propertyId || item.nershil || "Details";
-
-      // chips row similar to Mapon
       dChips.innerHTML = "";
-      const chips = [];
 
-      if (item.torol) chips.push({ text: item.torol, cls: chipClassForTorol(item.torol) });
-      if (item.uhTorol) chips.push({ text: item.uhTorol, cls: "blue" });
-      if (item.bairshil) chips.push({ text: item.bairshil, cls: "orange" });
-
-      for (const c of chips){
+      const addChip = (text, cls) => {
+        if (!text) return;
         const el = document.createElement("span");
-        el.className = "chip " + c.cls;
-        el.textContent = c.text;
+        el.className = "chip " + cls;
+        el.textContent = text;
         dChips.appendChild(el);
-      }
+      };
 
-      // body fields (Mapon-ish list)
+      addChip(item.torol, chipClassForTorol(item.torol));
+      addChip(item.uhTorol, "blue");
+      addChip(item.bairshil, "orange");
+      addChip(item.status, "gray");
+
       drawerBody.innerHTML = "";
 
-      const addField = (iconText, label, value, valueIsHtml=false) => {
+      const section = (title) => {
+        const h = document.createElement("div");
+        h.style.margin = "18px 0 6px";
+        h.style.fontWeight = "900";
+        h.style.fontSize = "13px";
+        h.textContent = title;
+        drawerBody.appendChild(h);
+      };
+
+      const addField = (iconText, label, value, html=false) => {
         if (value === null || value === undefined || value === "") return;
         const row = document.createElement("div");
         row.className = "field";
@@ -437,35 +321,34 @@
           <div class="icon">${escapeHtml(iconText)}</div>
           <div>
             <div class="label">${escapeHtml(label)}</div>
-            <div class="value">${valueIsHtml ? value : escapeHtml(value)}</div>
+            <div class="value">${html ? value : escapeHtml(value)}</div>
           </div>
         `;
         drawerBody.appendChild(row);
       };
 
-      addField("≡", "Property ID", item.propertyId);
-      addField("≡", "Төрөл", item.torol);
-      addField("≡", "ҮХ Төрөл", item.uhTorol);
-      addField("≡", "Байршил", item.bairshil);
+      section("Нэршил");
       addField("≡", "Нэршил", item.nershil);
 
-      // area + valuation + money
-      addField("≡", "Газар M²", item.gazarM2 ? `${item.gazarM2} м²` : "");
+      section("Үндсэн мэдээлэл");
       addField("≡", "M²", item.m2 ? `${item.m2} м²` : "");
+      addField("≡", "Газар M²", item.gazarM2 ? `${item.gazarM2} м²` : "");
       addField("≡", "M² үнэлгээ", item.m2Uneleg);
 
       addField("≡", "Үнэ", item.une ? formatMoney(item.une) : "");
       addField("≡", "Түрээс үнэ", item.tureesUne ? formatMoney(item.tureesUne) : "");
       addField("≡", "Түрээс Нөхцөл", item.tureesNohtsol);
 
+      section("Давхар / Өрөө");
       addField("#", "Өрөө", item.uruu);
       addField("#", "Давхар", item.davhar);
       addField("#", "Байр Давхар", item.bairDavhar);
 
+      section("Нөхцөл");
       addField("≡", "Төлбөрийн нөхцөл", item.tolborNohtsol);
       addField("≡", "Barter нөхцөл", item.barterNohtsol);
 
-      // Checkbox row (гараж / лифт)
+      section("Онцлог");
       const checks = document.createElement("div");
       checks.className = "checks";
       checks.innerHTML = `
@@ -481,11 +364,23 @@
       drawerBody.appendChild(checks);
 
       addField("≡", "Цонхны чиглэл", item.tsonhniiChiglel);
+
+      section("Дэлгэрэнгүй тайлбар");
+      if (item.delgerenguiTailbar){
+        const p = document.createElement("div");
+        p.style.whiteSpace = "pre-line";
+        p.style.fontSize = "13px";
+        p.style.lineHeight = "1.6";
+        p.textContent = item.delgerenguiTailbar;
+        drawerBody.appendChild(p);
+      }
+
+      section("Нэмэлт");
+      addField("≡", "List Agent", item.listAgent);
+
       addField("≡", "Unegui Link", item.uneguiLink
         ? `<a href="${escapeHtml(item.uneguiLink)}" target="_blank" rel="noopener">Open link →</a>`
-        : "",
-        true
-      );
+        : "", true);
 
       addField("#", "Lat", item.lat);
       addField("#", "Long", item.lng);
@@ -496,7 +391,6 @@
       currentItem = null;
     }
 
-    // --- Render markers
     function render(items){
       markersLayer.clearLayers();
       countLabel.textContent = items.length + " items";
@@ -506,25 +400,15 @@
         const icon = ICONS[torol] || DEFAULT_ICON;
 
         const marker = L.marker([item.lat, item.lng], { icon }).addTo(markersLayer);
-
         marker.bindPopup(popupHTML(item), { closeButton:true });
 
-        marker.on("click", () => {
-          // Open popup (Leaflet already does) and optionally prepare for drawer open
-          // Clicking the popup itself should open drawer.
-        });
-
         marker.on("popupopen", (e) => {
-          // Attach click handler to popup content to open drawer like Mapon
           const popupEl = e.popup.getElement();
           if (!popupEl) return;
           const content = popupEl.querySelector(".leaflet-popup-content");
           if (!content) return;
-
           content.style.cursor = "pointer";
-          content.onclick = () => {
-            openDrawer(item);
-          };
+          content.onclick = () => openDrawer(item);
         });
       }
     }
@@ -532,47 +416,24 @@
     function apply(){
       const q = qEl.value.trim();
       const t = typeEl.value.trim().toLowerCase();
-
       filtered = all.filter(x => itemMatches(x, q, t));
       render(filtered);
     }
 
-    // --- Events
     qEl.addEventListener("input", apply);
     typeEl.addEventListener("change", apply);
-
-    mapStyleEl.addEventListener("change", () => {
-      setMapStyle(mapStyleEl.value === "sat" ? "sat" : "clean");
-    });
-
+    mapStyleEl.addEventListener("change", () => setMapStyle(mapStyleEl.value === "sat" ? "sat" : "clean"));
     fitBtn.addEventListener("click", () => fitTo(filtered.length ? filtered : all));
-
-    closeDrawerBtn.addEventListener("click", () => {
-      if (currentItem) openDrawer(currentItem);
-      else if (filtered.length) openDrawer(filtered[0]);
-      else if (all.length) openDrawer(all[0]);
-      else closeDrawer();
-    });
-
+    closeDrawerBtn.addEventListener("click", () => currentItem ? openDrawer(currentItem) : (filtered[0] ? openDrawer(filtered[0]) : all[0] ? openDrawer(all[0]) : null));
     drawerX.addEventListener("click", closeDrawer);
 
-    // --- Load data
     async function load(){
       const res = await fetch(API_URL, { cache:"no-store" });
       const data = await res.json();
 
-      // Expecting your API fields:
-      // propertyId, torol, uhTorol, bairshil, nershil, gazarM2, m2, m2Uneleg,
-      // une, tureesUne, tureesNohtsol, uruu, davhar, bairDavhar, tolborNohtsol,
-      // barterNohtsol, garaj, lift, tsonhniiChiglel, uneguiLink, lat, lng
-
       all = (Array.isArray(data) ? data : []).filter(x =>
         Number.isFinite(Number(x.lat)) && Number.isFinite(Number(x.lng))
-      ).map(x => ({
-        ...x,
-        lat: Number(x.lat),
-        lng: Number(x.lng)
-      }));
+      ).map(x => ({ ...x, lat:Number(x.lat), lng:Number(x.lng) }));
 
       apply();
       fitTo(all);
@@ -580,7 +441,7 @@
 
     load().catch(err => {
       console.error(err);
-      alert("Failed to load API data. Check API_URL + permissions.");
+      alert("Failed to load API data. Check API_URL + Apps Script access is 'Anyone'.");
     });
   </script>
 </body>
