@@ -2,206 +2,377 @@
 <html lang="mn">
 <head>
 <meta charset="utf-8"/>
-<title>Property Inventory Map</title>
+<title>PROPERTY_INVENTORY</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
 :root{
-  --bg:#fff;--text:#111;--muted:#6b7280;--border:#e5e7eb;
+  --bg:#fff; --text:#111827; --muted:#6b7280; --border:#e5e7eb;
   --shadow:0 10px 25px rgba(0,0,0,.12);
 }
-html,body{margin:0;height:100%;font-family:system-ui}
+html,body{margin:0;height:100%;font-family:system-ui;color:var(--text)}
 #map{height:100vh;width:100vw}
 
-/* Map toggle */
+/* Map style toggle */
 .mapToggle{
-  position:fixed;left:14px;top:140px;
-  width:44px;height:44px;border-radius:999px;
-  border:1px solid var(--border);background:#fff;
-  box-shadow:var(--shadow);cursor:pointer;z-index:9999;
+  position:fixed; left:14px; top:140px; width:44px; height:44px;
+  border-radius:999px; border:1px solid var(--border); background:#fff;
+  box-shadow:var(--shadow); cursor:pointer; z-index:9999; font-weight:900;
 }
 
-/* Search panel */
+/* Panel */
 .panel{
-  position:fixed;right:16px;top:110px;width:320px;
-  background:#fff;border:1px solid var(--border);
-  border-radius:14px;box-shadow:var(--shadow);z-index:9999;
+  position:fixed; right:16px; top:110px; width:340px;
+  background:#fff; border:1px solid var(--border);
+  border-radius:14px; box-shadow:var(--shadow); z-index:9999;
+  overflow:hidden;
 }
-.panelHeader{padding:12px;font-weight:900;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+.panelHeader{
+  padding:12px; font-weight:950; border-bottom:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:center;
+}
 .panelBody{padding:12px}
-.hidden{display:none}
-
+.hidden{display:none !important;}
 .input,.select{
-  width:100%;padding:10px;border-radius:12px;
-  border:1px solid var(--border);font-weight:800;margin-bottom:10px;
+  width:100%; padding:12px; border-radius:14px;
+  border:1px solid var(--border); font-weight:900; font-size:14px;
+  background:#fff; outline:none; margin-bottom:12px;
 }
-.btn{padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:900;cursor:pointer}
+.btn{
+  padding:8px 10px; border-radius:12px; border:1px solid var(--border);
+  background:#fff; font-weight:950; cursor:pointer;
+}
 
-/* Marker labels */
-.pinWrap{display:flex;gap:6px;align-items:flex-start}
-.pinDot{width:16px;height:16px;border-radius:999px;margin-top:4px;border:2px solid #fff}
-.red{background:#ef4444}.green{background:#22c55e}.blue{background:#3b82f6}
-.pinLabel{background:rgba(255,255,255,.95);padding:6px 8px;border-radius:10px;box-shadow:var(--shadow)}
-.pinTitle{font-size:12px;font-weight:900}
-.pinSub{font-size:11px;color:var(--muted);font-weight:800}
+/* Mapon-style marker: colored pin + plain text (no box) */
+.maponMarker{ display:flex; align-items:center; gap:8px; pointer-events:auto; white-space:nowrap; }
+.maponPin{ width:22px; height:22px; flex:0 0 auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,.25)); }
+.maponText,.maponSub{
+  font-weight:950; font-size:12px; line-height:1.15; color:#111;
+  text-shadow: 0 1px 0 rgba(255,255,255,.9), 0 0 6px rgba(255,255,255,.7);
+}
+.maponSub{ margin-top:2px; }
 
 /* Popup */
-.popupTop{font-weight:900;font-size:14px}
-.popupChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{padding:6px 10px;border-radius:12px;font-size:12px;font-weight:900;border:1px solid var(--border)}
-.chip.red{background:#fee2e2}.chip.green{background:#dcfce7}.chip.blue{background:#dbeafe}
-.chip.orange{background:#ffedd5}.chip.gray{background:#f3f4f6}
-.popupHint{font-size:11px;color:var(--muted);margin-top:8px}
+.popupTop{font-weight:950;font-size:14px}
+.popupChips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{
+  padding:7px 10px; border-radius:12px;
+  font-size:12px; font-weight:950; border:1px solid var(--border);
+}
+.chip.red{background:#fee2e2;border-color:#fecaca}
+.chip.green{background:#dcfce7;border-color:#bbf7d0}
+.chip.blue{background:#dbeafe;border-color:#bfdbfe}
+.chip.orange{background:#ffedd5;border-color:#fed7aa}
+.chip.gray{background:#f3f4f6;border-color:#e5e7eb}
+.popupHint{font-size:12px;color:var(--muted);margin-top:10px}
 
 /* Drawer */
 .drawer{
-  position:fixed;right:16px;top:110px;bottom:16px;width:420px;
-  background:#fff;border:1px solid var(--border);
-  border-radius:14px;box-shadow:var(--shadow);
-  display:none;z-index:10000;
+  position:fixed; right:16px; top:110px; bottom:16px; width:420px;
+  background:#fff; border:1px solid var(--border); border-radius:14px;
+  box-shadow:var(--shadow); display:none; z-index:10000; overflow:hidden;
 }
-.drawerHeader{padding:14px;border-bottom:1px solid var(--border);text-align:center;font-weight:900}
-.drawerBody{padding:14px;overflow:auto;height:calc(100% - 60px)}
-.section{font-weight:900;margin:18px 0 8px}
+.drawerHeader{
+  padding:14px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.drawerTitle{ width:100%; text-align:center; font-weight:950; font-size:16px; }
+.drawerClose{ border:none; background:transparent; font-size:18px; cursor:pointer; padding:6px 10px; border-radius:10px; }
+.drawerClose:hover{ background:#f3f4f6; }
+.drawerBody{ padding:14px; overflow:auto; height:calc(100% - 60px); }
+
+.section{font-weight:950;margin:18px 0 10px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .stat{border:1px solid var(--border);border-radius:12px;padding:10px}
-.statLabel{font-size:11px;color:var(--muted);font-weight:900}
-.statValue{font-size:13px;font-weight:900;margin-top:6px}
-.row{display:flex;justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:8px;font-weight:900}
-.checks{display:flex;gap:16px;margin-top:8px}
-.box{width:16px;height:16px;border:1px solid #ccc;border-radius:4px;display:inline-flex;align-items:center;justify-content:center}
-.checked{background:#111;color:#fff}
+.statLabel{font-size:11px;color:var(--muted);font-weight:950}
+.statValue{font-size:13px;font-weight:950;margin-top:6px}
+.row{display:flex;justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:10px;font-weight:950}
+.checks{display:flex;gap:18px;margin-top:10px}
+.box{width:16px;height:16px;border:1px solid #cbd5e1;border-radius:4px;display:inline-flex;align-items:center;justify-content:center}
+.checked{background:#111827;color:#fff;border-color:#111827;font-size:12px}
+
+@media (max-width: 900px){
+  .drawer{width:92vw; right:4vw; top:90px;}
+  .panel{width:92vw; right:4vw; top:90px;}
+  .mapToggle{top:100px;}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
 
 <body>
 <div id="map"></div>
-<button class="mapToggle" id="mapToggle">🛰</button>
+<button class="mapToggle" id="mapToggle" title="Toggle map style">🛰</button>
 
 <div class="panel">
   <div class="panelHeader">
-    PROPERTY_INVENTORY
+    <div>PROPERTY_INVENTORY</div>
     <button class="btn" id="collapseBtn">☰</button>
   </div>
   <div class="panelBody" id="panelBody">
-    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршил"/>
+    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршил (сонгох/typing)"/>
     <datalist id="bairshilList"></datalist>
+
     <select class="select" id="type">
       <option value="">Төрөл (Бүгд)</option>
       <option value="борлуулах">Борлуулах</option>
       <option value="түрээслэх">Түрээслэх</option>
       <option value="хоёулаа">Хоёулаа</option>
     </select>
+
+    <select class="select" id="pay">
+      <option value="">Төлбөрийн нөхцөл (Бүгд)</option>
+    </select>
   </div>
 </div>
 
 <div class="drawer" id="drawer">
-  <div class="drawerHeader" id="drawerTitle"></div>
+  <div class="drawerHeader">
+    <div class="drawerTitle" id="drawerTitle"></div>
+    <button class="drawerClose" id="drawerClose">✕</button>
+  </div>
   <div class="drawerBody" id="drawerBody"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
+/* ========= CONFIG ========= */
 const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLhOSG9iK7anYVUc54lw7z7Ze9g-sgvWTjW9OM-0fuVz-mCgi_3AF2SHS4RKUKSSx-qFYVeSzWU7G_8AebpMUgEMm9d3bGAr6NzRzt-653eaNWnrY6QKS42v5EKEgXsjtDnVunD9J9UQsE08i2W-uxhlRoudgEkqgbVZt5NfAS_D2p1H15szKh10bv6025VvoQWZUpWcH8xeOiYuykg-sMNBsPxGY04wNINO9RPHlHuMKW2MT8TYCscLzgzRfDW1RzUQRxCPH5drzJAzNT5pCPinm_SFVg&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
 
-const map = L.map("map").setView([47.918,106.917],11);
-const clean = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}");
-let satOn=false;
-mapToggle.onclick=()=>{satOn?(map.removeLayer(sat),map.addLayer(clean)):(map.removeLayer(clean),map.addLayer(sat));satOn=!satOn};
+/* ========= MAP ========= */
+const map = L.map("map").setView([47.918,106.917], 11);
+
+const clean = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
+
+let satOn = false;
+document.getElementById("mapToggle").onclick = () => {
+  satOn = !satOn;
+  if (satOn) { map.removeLayer(clean); map.addLayer(sat); }
+  else { map.removeLayer(sat); map.addLayer(clean); }
+  document.getElementById("mapToggle").textContent = satOn ? "🗺" : "🛰";
+};
 
 const markersLayer = L.layerGroup().addTo(map);
 
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-const money=v=>v?Number(v).toLocaleString()+" ₮":"-";
-const torolColor=t=>t==="борлуулах"?"red":t==="түрээслэх"?"green":"blue";
-const torolLabel=t=>t==="түрээслэх"?"түрээс":t;
+/* ========= DOM ========= */
+const collapseBtn = document.getElementById("collapseBtn");
+const panelBody = document.getElementById("panelBody");
 
+const bairshilSearch = document.getElementById("bairshilSearch");
+const bairshilList = document.getElementById("bairshilList");
+const type = document.getElementById("type");
+const pay = document.getElementById("pay");
+
+const drawer = document.getElementById("drawer");
+const drawerTitle = document.getElementById("drawerTitle");
+const drawerBody = document.getElementById("drawerBody");
+document.getElementById("drawerClose").onclick = () => drawer.style.display = "none";
+
+collapseBtn.onclick = () => panelBody.classList.toggle("hidden");
+
+/* ========= HELPERS ========= */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));
+const norm = v => String(v ?? "").trim().toLowerCase();
+const money = v => (v === null || v === undefined || v === "") ? "-" : Number(v).toLocaleString() + " ₮";
+
+function torolLabel(torol){
+  const t = norm(torol);
+  if (t === "түрээслэх") return "түрээс";
+  return t;
+}
+
+function torolPinColor(torol){
+  const t = norm(torol);
+  if (t === "борлуулах") return "#ef4444";               // red
+  if (t === "түрээслэх" || t === "түрээс") return "#22c55e"; // green
+  return "#3b82f6"; // blue (хоёулаа)
+}
+
+function chipClassForTorol(torol){
+  const t = norm(torol);
+  if (t === "борлуулах") return "red";
+  if (t === "түрээслэх" || t === "түрээс") return "green";
+  return "blue";
+}
+
+/* ========= MARKER ========= */
 function labeledMarker(i){
-  return L.marker([i.lat,i.lng],{
-    icon:L.divIcon({
-      className:"",
-      html:`<div class="pinWrap">
-        <div class="pinDot ${torolColor(i.torol)}"></div>
-        <div class="pinLabel">
-          <div class="pinTitle">${esc(i.nershil)}</div>
-          <div class="pinSub">${esc(i.uhTorol||"")}</div>
-        </div>
-      </div>`
+  const title = esc(i.nershil || "");
+  const m2 = i.m2 ? `${esc(i.m2)}m²` : "";
+  const uruu = (i.uruu !== null && i.uruu !== undefined && i.uruu !== "") ? `${esc(i.uruu)} өрөө` : "";
+  const sub = [m2, uruu].filter(Boolean).join(" | ");
+
+  const pinColor = torolPinColor(i.torol);
+
+  const pinSvg = `
+    <svg class="maponPin" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="${pinColor}" d="M12 2c-3.314 0-6 2.686-6 6 0 4.5 6 14 6 14s6-9.5 6-14c0-3.314-2.686-6-6-6z"/>
+      <circle cx="12" cy="8" r="2.6" fill="#ffffff"/>
+    </svg>
+  `;
+
+  const html = `
+    <div class="maponMarker">
+      ${pinSvg}
+      <div>
+        <div class="maponText">${title}</div>
+        <div class="maponSub">${esc(sub)}</div>
+      </div>
+    </div>
+  `;
+
+  return L.marker([i.lat, i.lng], {
+    icon: L.divIcon({
+      className: "",
+      html,
+      iconAnchor: [11, 22],
+      popupAnchor: [0, -18]
     })
   });
 }
 
+/* ========= POPUP ========= */
 function popupHTML(i){
+  const nershil = (i.nershil || "").trim();
+  const uhTorol = (i.uhTorol || "").trim();
+  const torolDisp = torolLabel(i.torol);
+  const bair = (i.bairshil || "").trim();
+  const m2 = i.m2 ? `${i.m2} м²` : "";
+
+  const chip = (text, cls) => text ? `<span class="chip ${cls}">${esc(text)}</span>` : "";
+
   return `
-    <div class="popupTop">${esc(i.nershil)}</div>
-    <div class="popupChips">
-      <span class="chip blue">${esc(i.uhTorol||"")}</span>
-      <span class="chip ${torolColor(i.torol)}">${torolLabel(i.torol)}</span>
-      <span class="chip orange">${esc(i.bairshil||"")}</span>
-      <span class="chip gray">${i.m2||""} м²</span>
+    <div>
+      <div class="popupTop">${esc(nershil)}</div>
+      <div class="popupChips">
+        ${chip(uhTorol, "blue")}
+        ${chip(torolDisp, chipClassForTorol(i.torol))}
+        ${chip(bair, "orange")}
+        ${chip(m2, "gray")}
+      </div>
+      <div class="popupHint">Click to open details →</div>
     </div>
-    <div class="popupHint">Click to open details →</div>`;
-}
-
-function openDrawer(i){
-  drawer.style.display="block";
-  drawerTitle.textContent=i.nershil;
-
-  drawerBody.innerHTML=`
-    <div class="section">Үндсэн мэдээлэл</div>
-    <div class="stats">
-      <div class="stat"><div class="statLabel">Газар M²</div><div class="statValue">${i.gazarM2||"-"}</div></div>
-      <div class="stat"><div class="statLabel">M²</div><div class="statValue">${i.m2||"-"}</div></div>
-      <div class="stat"><div class="statLabel">Үнэ</div><div class="statValue">${money(i.une)}</div></div>
-      <div class="stat"><div class="statLabel">M² үнэлгээ</div><div class="statValue">${i.m2Uneleg||"-"}</div></div>
-    </div>
-
-    <div class="row"><span>Өрөө</span><span>${i.uruu||"-"}</span></div>
-    <div class="row"><span>Давхар / Байр Давхар</span><span>${i.davhar||"-"} / ${i.bairDavhar||"-"}</span></div>
-
-    ${i.tureesUne||i.tureesNohtsol?`
-      <div class="section">Түрээс</div>
-      <div class="row"><span>Түрээс үнэ</span><span>${money(i.tureesUne)}</span></div>
-      <div>${esc(i.tureesNohtsol||"-")}</div>`:""}
-
-    <div class="section">Төлбөрийн нөхцөл</div>
-    <div>${esc(i.tolborNohtsol||"-")}</div>
-
-    ${i.barterNohtsol?`
-      <div class="section">Barter нөхцөл</div>
-      <div>${esc(i.barterNohtsol)}</div>`:""}
-
-    <div class="section">Онцлог</div>
-    <div class="checks">
-      <div>${i.garaj?'<span class="box checked">✓</span>':'<span class="box"></span>'} Гараж</div>
-      <div>${i.lift?'<span class="box checked">✓</span>':'<span class="box"></span>'} Лифт</div>
-    </div>
-
-    <div class="section">Цонхны чиглэл</div>
-    <div>${esc(i.tsonhniiChiglel||"-")}</div>
-
-    <div class="section">List Agent</div>
-    <div>${esc(i.listAgent||"-")}</div>
-
-    <div class="section">Дэлгэрэнгүй тайлбар</div>
-    <div>${esc(i.delgerenguiTailbar||"-")}</div>
   `;
 }
 
-fetch(API_URL).then(r=>r.json()).then(data=>{
-  bairshilList.innerHTML=[...new Set(data.map(x=>x.bairshil).filter(Boolean))]
-    .map(v=>`<option value="${esc(v)}">`).join("");
+/* ========= DRAWER ========= */
+function openDrawer(i){
+  drawer.style.display = "block";
+  drawerTitle.textContent = i.nershil || "-";
 
-  data.forEach(i=>{
-    const m=labeledMarker(i);
-    m.bindPopup(popupHTML(i));
-    m.on("popupopen",e=>e.popup.getElement().onclick=()=>openDrawer(i));
+  const escVal = (v) => (v === null || v === undefined || String(v).trim() === "") ? "-" : esc(v);
+
+  const garageBox = `<span class="box ${i.garaj ? "checked" : ""}">${i.garaj ? "✓" : ""}</span>`;
+  const liftBox   = `<span class="box ${i.lift ? "checked" : ""}">${i.lift ? "✓" : ""}</span>`;
+
+  const rentSection = (i.tureesUne || i.tureesNohtsol) ? `
+    <div class="section">Түрээс</div>
+    <div class="row"><span>Түрээс үнэ</span><span>${money(i.tureesUne)}</span></div>
+    <div style="margin-top:8px;font-weight:950;">${escVal(i.tureesNohtsol)}</div>
+  ` : "";
+
+  const barterSection = (i.barterNohtsol && String(i.barterNohtsol).trim() !== "") ? `
+    <div class="section">Barter нөхцөл</div>
+    <div style="white-space:pre-line;font-weight:950;">${esc(i.barterNohtsol)}</div>
+  ` : "";
+
+  drawerBody.innerHTML = `
+    <div class="section">Үндсэн мэдээлэл</div>
+    <div class="stats">
+      <div class="stat"><div class="statLabel">Газар M²</div><div class="statValue">${escVal(i.gazarM2)}</div></div>
+      <div class="stat"><div class="statLabel">M²</div><div class="statValue">${escVal(i.m2)}</div></div>
+      <div class="stat"><div class="statLabel">Үнэ</div><div class="statValue">${money(i.une)}</div></div>
+      <div class="stat"><div class="statLabel">M² үнэлгээ</div><div class="statValue">${escVal(i.m2Uneleg)}</div></div>
+    </div>
+
+    <div class="row"><span>Өрөө</span><span>${escVal(i.uruu)}</span></div>
+    <div class="row"><span>Давхар / Байр Давхар</span><span>${escVal(i.davhar)} / ${escVal(i.bairDavhar)}</span></div>
+
+    ${rentSection}
+
+    <div class="section">Төлбөрийн нөхцөл</div>
+    <div style="font-weight:950;">${escVal(i.tolborNohtsol)}</div>
+
+    ${barterSection}
+
+    <div class="section">Онцлог</div>
+    <div class="checks">
+      <div>${garageBox} Гараж</div>
+      <div>${liftBox} Лифт</div>
+    </div>
+
+    <div class="section">Цонхны чиглэл</div>
+    <div style="font-weight:950;">${escVal(i.tsonhniiChiglel)}</div>
+
+    <div class="section">List Agent</div>
+    <div style="font-weight:950;">${escVal(i.listAgent)}</div>
+
+    <div class="section">Дэлгэрэнгүй тайлбар</div>
+    <div style="white-space:pre-line;">${escVal(i.delgerenguiTailbar)}</div>
+  `;
+}
+
+/* ========= FILTER SYSTEM ========= */
+let ALL = [];
+
+function matchesFilters(item){
+  const bair = norm(bairshilSearch.value);
+  const tor = norm(type.value);
+  const payv = norm(pay.value);
+
+  if (bair && norm(item.bairshil) !== bair) return false;
+  if (tor && norm(item.torol) !== tor) return false;
+  if (payv && norm(item.tolborNohtsol) !== payv) return false;
+
+  return true;
+}
+
+function render(){
+  markersLayer.clearLayers();
+  const filtered = ALL.filter(matchesFilters);
+
+  filtered.forEach(i => {
+    const m = labeledMarker(i);
+    m.bindPopup(popupHTML(i), { closeButton: true });
+    m.on("popupopen", e => {
+      const el = e.popup.getElement();
+      if (el) el.onclick = () => openDrawer(i);
+    });
     markersLayer.addLayer(m);
   });
-});
+}
+
+/* ========= LOAD ========= */
+fetch(API_URL)
+  .then(r => r.json())
+  .then(data => {
+    ALL = (Array.isArray(data) ? data : [])
+      .filter(x => Number.isFinite(Number(x.lat)) && Number.isFinite(Number(x.lng)))
+      .map(x => ({ ...x, lat:Number(x.lat), lng:Number(x.lng) }));
+
+    // Байршил options
+    const bairSet = new Set(ALL.map(x => (x.bairshil || "").trim()).filter(Boolean));
+    bairshilList.innerHTML = [...bairSet].sort().map(v => `<option value="${esc(v)}">`).join("");
+
+    // Төлбөрийн нөхцөл options
+    const paySet = new Set(ALL.map(x => (x.tolborNohtsol || "").trim()).filter(Boolean));
+    pay.innerHTML =
+      `<option value="">Төлбөрийн нөхцөл (Бүгд)</option>` +
+      [...paySet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+
+    // Hook filter events
+    bairshilSearch.addEventListener("input", render);
+    type.addEventListener("change", render);
+    pay.addEventListener("change", render);
+
+    render();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("API load failed. Check API_URL or Apps Script permissions.");
+  });
 </script>
 </body>
 </html>
