@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
 <style>
 :root{
@@ -20,12 +21,14 @@
 
 html, body{
   margin:0; height:100%;
-  font-family: Calibri, "Carlito", "Segoe UI", Arial, "Noto Sans", sans-serif;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "DejaVu Sans", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   color:var(--text);
 }
 #map{height:100vh;width:100vw}
 
-/* Map style toggle (left circle) */
+/* Map style toggle */
 .mapToggle{
   position:fixed; left:14px; top:140px;
   width:44px; height:44px; border-radius:999px;
@@ -59,9 +62,18 @@ html, body{
   outline:none;
   margin-bottom:12px;
 }
+.btn{
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:#fff;
+  font-weight:950;
+  cursor:pointer;
+}
+
 .rowInline{
   display:flex; gap:10px; align-items:center;
-  margin-top: 2px;
+  margin-top:2px;
 }
 .switchWrap{
   display:flex; gap:10px; align-items:center;
@@ -70,7 +82,7 @@ html, body{
 }
 .switchWrap input{ transform: scale(1.1); }
 
-/* Mapon-style pin + plain text beside (no white box) */
+/* Mapon-style marker: colored pin + plain text (no label box) */
 .maponMarker{
   display:flex;
   align-items:center;
@@ -89,7 +101,6 @@ html, body{
   font-size:12px;
   line-height:1.15;
   color:#111;
-  /* readable on satellite without ugly box */
   text-shadow:
     0 1px 0 rgba(255,255,255,.95),
     0 0 6px rgba(255,255,255,.75);
@@ -107,7 +118,6 @@ html, body{
 .chip.red{background:#fee2e2;border-color:#fecaca}
 .chip.green{background:#dcfce7;border-color:#bbf7d0}
 .chip.blue{background:#dbeafe;border-color:#bfdbfe}
-.chip.orange{background:#ffedd5;border-color:#fed7aa}
 .chip.gray{background:#f3f4f6;border-color:#e5e7eb}
 .popupHint{font-size:12px;color:var(--muted);margin-top:10px}
 
@@ -116,6 +126,7 @@ html, body{
   position:fixed; right:16px; top:110px; bottom:16px; width:420px;
   background:#fff; border:1px solid var(--border); border-radius:14px;
   box-shadow:var(--shadow); display:none; z-index:10000; overflow:hidden;
+  max-height:calc(100dvh - 110px - 16px);
 }
 .drawerHeader{
   padding:14px; border-bottom:1px solid var(--border);
@@ -134,7 +145,13 @@ html, body{
   padding:6px 10px; border-radius:10px;
 }
 .drawerClose:hover{ background:#f3f4f6; }
-.drawerBody{ padding:14px; overflow:auto; height:calc(100% - 60px); }
+
+/* Use dvh so mobile browser UI doesn't chop bottom */
+.drawerBody{
+  padding:14px;
+  overflow:auto;
+  height:calc(100dvh - 110px - 16px - 60px);
+}
 
 .section{ font-weight:950; margin:18px 0 10px; }
 .sectionCenter{ text-align:center; }
@@ -153,11 +170,31 @@ html, body{
 .statValue{ font-size:13px; font-weight:950; margin-top:6px; }
 
 .rowBox{
-  display:flex; justify-content:space-between; align-items:center;
-  border:1px solid var(--border); border-radius:12px;
-  padding:10px; margin-top:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px;
+  margin-top:10px;
   font-weight:950;
 }
+
+.rowBox span{
+  white-space:nowrap;
+}
+.rowBox span:first-child{
+  white-space:normal;
+}
+.rowBox span:nth-child(2){
+  color:var(--muted);
+  font-weight:900;
+}
+.rowBox span:last-child{
+  margin-left:auto;
+}
+
 .valueNormal{ font-weight:600; color:var(--text); }
 
 .checks{ display:flex; gap:18px; margin-top:10px; }
@@ -188,7 +225,7 @@ html, body{
 <div class="panel">
   <div class="panelHeader">
     <div>PROPERTY_INVENTORY</div>
-    <button class="btn" id="collapseBtn" style="padding:8px 10px;border-radius:12px;border:1px solid var(--border);background:#fff;font-weight:950;cursor:pointer;">☰</button>
+    <button class="btn" id="collapseBtn">☰</button>
   </div>
 
   <div class="panelBody" id="panelBody">
@@ -231,7 +268,7 @@ html, body{
 
 <script>
 /* ========= CONFIG: ONLY CHANGE THIS ========= */
-const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLhOSG9iK7anYVUc54lw7z7Ze9g-sgvWTjW9OM-0fuVz-mCgi_3AF2SHS4RKUKSSx-qFYVeSzWU7G_8AebpMUgEMm9d3bGAr6NzRzt-653eaNWnrY6QKS42v5EKEgXsjtDnVunD9J9UQsE08i2W-uxhlRoudgEkqgbVZt5NfAS_D2p1H15szKh10bv6025VvoQWZUpWcH8xeOiYuykg-sMNBsPxGY04wNINO9RPHlHuMKW2MT8TYCscLzgzRfDW1RzUQRxCPH5drzJAzNT5pCPinm_SFVg&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
+const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
 /* ========= MAP ========= */
 const map = L.map("map").setView([47.918,106.917], 11);
@@ -275,9 +312,9 @@ function money(v){
   if (!Number.isFinite(n)) return esc(String(v));
   return n.toLocaleString() + " ₮";
 }
-function numberOrDash(v){
-  if (v === null || v === undefined || v === "") return "-";
-  return esc(String(v));
+function valueOrDash(v){
+  const s = String(v ?? "").trim();
+  return s ? esc(s) : "-";
 }
 
 function torolLabel(torol){
@@ -289,7 +326,7 @@ function torolPinColor(torol){
   const t = norm(torol);
   if (t === "борлуулах") return "#ef4444";                 // red
   if (t === "түрээслэх" || t === "түрээс") return "#22c55e"; // green
-  return "#3b82f6"; // blue for хоёулаа
+  return "#3b82f6"; // blue
 }
 function chipClassForTorol(torol){
   const t = norm(torol);
@@ -298,9 +335,8 @@ function chipClassForTorol(torol){
   return "blue";
 }
 
-/* ========= LAYERS (pins vs cluster) ========= */
+/* ========= LAYERS ========= */
 const pinsLayer = L.layerGroup().addTo(map);
-
 const clusterLayer = L.markerClusterGroup({
   chunkedLoading: true,
   showCoverageOnHover: false,
@@ -308,7 +344,6 @@ const clusterLayer = L.markerClusterGroup({
   maxClusterRadius: 50,
   disableClusteringAtZoom: 15
 });
-
 let useCluster = false;
 
 function setLayerMode(clusterOn){
@@ -324,16 +359,22 @@ function setLayerMode(clusterOn){
 
 clusterToggle.onchange = () => {
   setLayerMode(clusterToggle.checked);
-  render(); // re-add markers into the active layer
+  render();
 };
 
-/* ========= MARKERS ========= */
+/* ========= MARKER ========= */
 function makeMarker(item){
   const title = esc(item.nershil || "");
-  const m2 = item.m2 ? `${esc(item.m2)}m²` : "";
-  const uruu = (item.uruu !== null && item.uruu !== undefined && item.uruu !== "")
+
+  // Put ҮХ Төрөл (e.g., Байр) onto the pin label (NOT popup)
+  const uh = String(item.uhTorol ?? "").trim();
+
+  const m2 = item.m2 ? `${esc(item.m2)}м²` : "";
+  const uruu = (item.uruu !== null && item.uruu !== undefined && String(item.uruu).trim() !== "")
     ? `${esc(item.uruu)} өрөө` : "";
-  const sub = [m2, uruu].filter(Boolean).join(" | ");
+
+  const info = [m2, uruu].filter(Boolean).join(" | ");
+  const sub = [uh, info].filter(Boolean).join(" • "); // Байр • 55м² | 2 өрөө
 
   const pinColor = torolPinColor(item.torol);
 
@@ -364,8 +405,18 @@ function makeMarker(item){
   });
 }
 
-/* ========= POPUP ========= */
+/* ========= POPUP (white box) ========= */
+/* Requirement:
+   - Remove "Байр" from popup (uhTorol removed)
+   - Remove "Гэмтэл" completely
+   - Show "55м² | 2 өрөө" in popup instead
+*/
 function popupHTML(i){
+  const m2 = i.m2 ? `${i.m2}м²` : "";
+  const uruu = (i.uruu !== null && i.uruu !== undefined && String(i.uruu).trim() !== "")
+    ? `${i.uruu} өрөө` : "";
+  const mainInfo = [m2, uruu].filter(Boolean).join(" | ");
+
   const chip = (text, cls) => {
     const t = String(text ?? "").trim();
     return t ? `<span class="chip ${cls}">${esc(t)}</span>` : "";
@@ -375,10 +426,8 @@ function popupHTML(i){
     <div>
       <div class="popupTop">${esc(i.nershil || "")}</div>
       <div class="popupChips">
-        ${chip(i.uhTorol, "blue")}
         ${chip(torolLabel(i.torol), chipClassForTorol(i.torol))}
-        ${chip(i.bairshil, "orange")}
-        ${chip(i.m2 ? (i.m2 + " м²") : "", "gray")}
+        ${chip(mainInfo, "gray")}
       </div>
       <div class="popupHint">Click to open details →</div>
     </div>
@@ -393,29 +442,34 @@ function openDrawer(i){
   const garageBox = `<span class="box ${i.garaj ? "checked" : ""}">${i.garaj ? "✓" : ""}</span>`;
   const liftBox   = `<span class="box ${i.lift ? "checked" : ""}">${i.lift ? "✓" : ""}</span>`;
 
-  const showRent = (i.tureesUne || i.tureesNohtsol);
-  const showBarter = (i.barterNohtsol && String(i.barterNohtsol).trim() !== "");
+  const showRent = (String(i.tureesUne ?? "").trim() !== "" || String(i.tureesNohtsol ?? "").trim() !== "");
+  const showBarter = (String(i.barterNohtsol ?? "").trim() !== "");
 
   drawerBody.innerHTML = `
     <div class="section">Үндсэн мэдээлэл</div>
     <div class="stats">
-      <div class="stat"><div class="statLabel">Газар M²</div><div class="statValue">${numberOrDash(i.gazarM2)}</div></div>
-      <div class="stat"><div class="statLabel">M²</div><div class="statValue">${numberOrDash(i.m2)}</div></div>
+      <div class="stat"><div class="statLabel">Газар M²</div><div class="statValue">${valueOrDash(i.gazarM2)}</div></div>
+      <div class="stat"><div class="statLabel">M²</div><div class="statValue">${valueOrDash(i.m2)}</div></div>
       <div class="stat"><div class="statLabel">Үнэ</div><div class="statValue">${money(i.une)}</div></div>
-      <div class="stat"><div class="statLabel">M² үнэлгээ</div><div class="statValue">${numberOrDash(i.m2Uneleg)}</div></div>
+      <div class="stat"><div class="statLabel">M² үнэлгээ</div><div class="statValue">${valueOrDash(i.m2Uneleg)}</div></div>
     </div>
 
-    <div class="rowBox"><span>Өрөө</span><span>${numberOrDash(i.uruu)}</span></div>
-    <div class="rowBox"><span>Давхар / Байр Давхар</span><span>${numberOrDash(i.davhar)} / ${numberOrDash(i.bairDavhar)}</span></div>
+    <div class="rowBox"><span>Өрөө</span><span>${valueOrDash(i.uruu)}</span></div>
+    <div class="rowBox"><span>Давхар / Байр Давхар</span><span>${valueOrDash(i.davhar)} / ${valueOrDash(i.bairDavhar)}</span></div>
 
     ${showRent ? `
       <div class="section">Түрээс</div>
-      <div class="rowBox"><span>Түрээс үнэ</span><span>${money(i.tureesUne)}</span></div>
-      <div class="valueNormal" style="margin-top:8px; white-space:pre-line;">${esc(String(i.tureesNohtsol ?? "-"))}</div>
+      <div class="rowBox">
+        <span>Түрээс үнэ</span>
+        <span>${valueOrDash(i.tureesNohtsol)}</span>
+        <span>${money(i.tureesUne)}</span>
+      </div>
     ` : ""}
 
-    <div class="section">Төлбөрийн нөхцөл</div>
-    <div class="valueNormal">${esc(String(i.tolborNohtsol ?? "-"))}</div>
+    <div class="rowBox">
+      <span>Төлбөрийн нөхцөл</span>
+      <span>${valueOrDash(i.tolborNohtsol)}</span>
+    </div>
 
     ${showBarter ? `
       <div class="section">Barter нөхцөл</div>
@@ -429,14 +483,14 @@ function openDrawer(i){
     </div>
 
     <div class="section">Цонхны чиглэл</div>
-    <div class="valueNormal">${esc(String(i.tsonhniiChiglel ?? "-"))}</div>
+    <div class="valueNormal">${valueOrDash(i.tsonhniiChiglel)}</div>
 
     <div class="section sectionCenter">Дэлгэрэнгүй тайлбар</div>
-    <div class="valueNormal" style="white-space:pre-line;">${esc(String(i.delgerenguiTailbar ?? "-"))}</div>
+    <div class="valueNormal" style="white-space:pre-line;">${valueOrDash(i.delgerenguiTailbar)}</div>
 
     <div class="rowBox" style="margin-top:16px;">
       <span>List Agent</span>
-      <span>${esc(String(i.listAgent ?? "-"))}</span>
+      <span>${valueOrDash(i.listAgent)}</span>
     </div>
   `;
 }
@@ -452,14 +506,10 @@ function matchesFilters(item){
   if (bair && norm(item.bairshil) !== bair) return false;
   if (torol && norm(item.torol) !== torol) return false;
   if (pay && norm(item.tolborNohtsol) !== pay) return false;
-
   return true;
 }
 
-function activeLayer(){
-  return useCluster ? clusterLayer : pinsLayer;
-}
-
+function activeLayer(){ return useCluster ? clusterLayer : pinsLayer; }
 function clearActiveLayer(){
   if (useCluster) clusterLayer.clearLayers();
   else pinsLayer.clearLayers();
@@ -467,7 +517,6 @@ function clearActiveLayer(){
 
 function render(){
   clearActiveLayer();
-
   const layer = activeLayer();
   const filtered = ALL.filter(matchesFilters);
 
@@ -486,35 +535,41 @@ function render(){
   }
 }
 
-/* hook filter events */
+/* filter events */
 bairshilSearch.addEventListener("input", render);
 typeEl.addEventListener("change", render);
 payEl.addEventListener("change", render);
 
 /* ========= LOAD ========= */
+function toNumber(v){
+  const s = String(v ?? "").trim().replace(",", ".");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 fetch(API_URL)
   .then(r => r.json())
   .then(data => {
     const arr = Array.isArray(data) ? data : [];
 
-    // Robust lat/lng parsing so pins don't "vanish"
+    // robust lat/lng mapping (so pins don't "disappear")
     ALL = arr.map(x => {
-      const lat = Number(x.lat ?? x.Lat ?? x.latitude);
-      const lng = Number(x.lng ?? x.long ?? x.Long ?? x.longitude);
+      const lat = toNumber(x.lat ?? x.Lat ?? x.latitude ?? x.LAT);
+      const lng = toNumber(x.lng ?? x.long ?? x.Long ?? x.longitude ?? x.LNG ?? x.LON);
       return { ...x, lat, lng };
     }).filter(x => Number.isFinite(x.lat) && Number.isFinite(x.lng));
 
-    // Build Байршил datalist
+    // Байршил datalist
     const bairSet = new Set(ALL.map(x => (x.bairshil || "").trim()).filter(Boolean));
     bairshilList.innerHTML = [...bairSet].sort().map(v => `<option value="${esc(v)}">`).join("");
 
-    // Build Төлбөрийн нөхцөл select
+    // Төлбөрийн нөхцөл select
     const paySet = new Set(ALL.map(x => (x.tolborNohtsol || "").trim()).filter(Boolean));
     payEl.innerHTML =
       `<option value="">Төлбөрийн нөхцөл (Бүгд)</option>` +
       [...paySet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // Default: pins only (cluster OFF)
+    // default: pins only
     clusterToggle.checked = false;
     setLayerMode(false);
 
@@ -522,7 +577,7 @@ fetch(API_URL)
   })
   .catch(err => {
     console.error(err);
-    alert("API load failed. Check API_URL and Apps Script access (Anyone).");
+    alert("API load failed. Check API_URL and Apps Script permissions (Anyone).");
   });
 </script>
 </body>
