@@ -1,31 +1,61 @@
 <!doctype html>
-<html>
+<html lang="mn">
 <head>
   <meta charset="utf-8" />
   <title>Property Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
   <style>
-    body { margin:0; font-family: system-ui, Arial; }
+    body { margin:0; font-family: system-ui, Arial, sans-serif; }
     #wrap { display:flex; height:100vh; }
     #map { flex:1; }
-    #panel { width:360px; max-width:90vw; border-left:1px solid #e5e5e5; padding:12px; overflow:auto; background:#fff; }
-    .item { padding:10px; border:1px solid #eee; border-radius:10px; margin-bottom:10px; cursor:pointer; }
+    #panel {
+      width:360px;
+      max-width:90vw;
+      border-left:1px solid #e5e5e5;
+      padding:12px;
+      overflow:auto;
+      background:#fff;
+    }
+    h3 { margin:0 0 10px; }
+    .item {
+      padding:10px;
+      border:1px solid #eee;
+      border-radius:10px;
+      margin-bottom:10px;
+      cursor:pointer;
+    }
     .muted { color:#666; font-size:12px; }
-    input, select { width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin:6px 0 12px; }
+    input, select {
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #ddd;
+      margin:6px 0 12px;
+    }
   </style>
 </head>
+
 <body>
 <div id="wrap">
   <div id="map"></div>
+
   <div id="panel">
-    <h3 style="margin:0 0 10px;">Listings</h3>
+    <h3>Үл хөдлөхийн жагсаалт</h3>
 
-    <label class="muted">Search</label>
-    <input id="q" placeholder="Search by name / location / id" />
+    <label class="muted">Хайх</label>
+    <input id="q" placeholder="Нэршил / Байршил / ID" />
 
-    <label class="muted">Filter by Status</label>
-    <select id="status"><option value="">All</option></select>
+    <label class="muted">Төрөл</label>
+    <select id="type">
+      <option value="">Бүгд</option>
+      <option value="борлуулах">Борлуулах</option>
+      <option value="түрээслэх">Түрээслэх</option>
+      <option value="хоёулаа">2 Уулаа</option>
+    </select>
 
     <div id="list"></div>
   </div>
@@ -33,50 +63,82 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLiCuH3dh5VUFid0yWs8uaFmkqbjDTX47y-ixvibwyv0OzaWVx1cUosgWH-la9AYhNjSkSMheP5DNQKKu-Hoq8_uuXKQmZnL1kWQs78aqrzUMhFyPYKcGSx_ej1Ean6rYnmLnngyYuaPEoVFfaS3UbO7w10wkmZ9GiOMDW8XK1cgiwkwcAiJ5rVpeIuJJvn2p5Jn8meLbDBBmnM0RzEi_mOf3biyDL59mUY8EQYV6KfZbHPCAGuBWMMVDWgKjUN_utMxX6vxYc2YNArCqE5M_-hT-f5XUg&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
+  // 🔴🔴🔴 REPLACE THIS WITH YOUR APPS SCRIPT WEB APP URL 🔴🔴🔴
+  const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgrNwBSG8lWMKFRVQ2SdSMEwB2xUMZkwHlTOxxpTEGzCPsD56Siy_5cZmaA56xt5HctfjD5p3GIuA3b9FFxuZwAf3ieHZtyjctFjGKlh-W70xgdD4D91w7_YqFOT14mzVg0jz9dHbRBqvayRs3WKRA0UNODubjxqnTMz0bZqG8x8yiG6dTno92ezXha_gXH1msUsbiIUgYDIolcUijH4sOeN4HoIf4nXhTQfiv7PXehPs7njTqULQQQHCvu3AOtYt62O3BOABIoW3-pweoBlSEuTZlfPg&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
 
+  // ---------- MAP ----------
   const map = L.map("map").setView([47.918, 106.917], 11);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
 
-  const qEl = document.getElementById("q");
-  const statusEl = document.getElementById("status");
+  const cleanMap = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom:19, attribution:"© OpenStreetMap" }
+  ).addTo(map);
+
+  const satelliteMap = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom:19, attribution:"© Esri" }
+  );
+
+  L.control.layers(
+    { "Clean map": cleanMap, "Satellite": satelliteMap },
+    null,
+    { position:"topright" }
+  ).addTo(map);
+
+  // ---------- ICONS ----------
+  const ICONS = {
+    "борлуулах": "red",
+    "түрээслэх": "green",
+    "хоёулаа": "blue"
+  };
+
+  function icon(color){
+    return new L.Icon({
+      iconUrl:`https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+      shadowUrl:"https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      iconSize:[25,41],
+      iconAnchor:[12,41],
+      popupAnchor:[1,-34]
+    });
+  }
+
+  const ICON_CACHE = {
+    red: icon("red"),
+    green: icon("green"),
+    blue: icon("blue")
+  };
+
+  // ---------- HELPERS ----------
+  const escapeHtml = s =>
+    String(s ?? "").replace(/[&<>"']/g,c=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+    }[c]));
+
   const listEl = document.getElementById("list");
+  const qEl = document.getElementById("q");
+  const typeEl = document.getElementById("type");
 
   let all = [];
   let layer = L.layerGroup().addTo(map);
 
-  function escapeHtml(s){return String(s ?? "").replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));}
-
-  function renderStatusOptions(items){
-    const set = new Set(items.map(x => (x.status||"").trim()).filter(Boolean));
-    statusEl.innerHTML = '<option value="">All</option>' + [...set].sort().map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
-  }
-
-  function matches(item, q, st){
-    if (st && String(item.status).trim() !== st) return false;
-    if (!q) return true;
-    const hay = [item.propertyId, item.nershil, item.location, item.torol, item.uhTorol].join(" ").toLowerCase();
-    return hay.includes(q.toLowerCase());
-  }
-
-  function show(item){
-    map.setView([item.lat, item.lng], 14);
-    L.popup()
-      .setLatLng([item.lat, item.lng])
-      .setContent(`
-        <div style="min-width:220px">
-          <div style="font-weight:700">${escapeHtml(item.nershil || item.propertyId)}</div>
-          <div class="muted">${escapeHtml(item.location||"")}</div>
-          ${item.une ? `<div><b>Үнэ:</b> ${escapeHtml(item.une)}</div>` : ""}
-          ${item.tureesUne ? `<div><b>Түрээс:</b> ${escapeHtml(item.tureesUne)}</div>` : ""}
-          ${item.uneguiLink ? `<div><a href="${escapeHtml(item.uneguiLink)}" target="_blank">Open link</a></div>` : ""}
-          <div class="muted" style="margin-top:6px">(${item.lat.toFixed(5)}, ${item.lng.toFixed(5)})</div>
+  function popup(item){
+    return `
+      <div style="min-width:240px">
+        <div style="font-weight:700">${escapeHtml(item.nershil || item.propertyId)}</div>
+        <div class="muted">${escapeHtml(item.location||"")}</div>
+        <hr>
+        <div><b>Төрөл:</b> ${escapeHtml(item.torol)}</div>
+        ${item.m2 ? `<div><b>Талбай:</b> ${item.m2} м²</div>` : ""}
+        ${item.une ? `<div><b>Үнэ:</b> ${Number(item.une).toLocaleString()} ₮</div>` : ""}
+        ${item.tureesUne ? `<div><b>Түрээс:</b> ${Number(item.tureesUne).toLocaleString()} ₮</div>` : ""}
+        <div style="margin-top:6px">
+          ${item.lift ? "🛗 Лифт " : ""}
+          ${item.garaj ? "🚗 Гараж" : ""}
         </div>
-      `)
-      .openOn(map);
+        ${item.uneguiLink ? `<div style="margin-top:8px">
+          <a href="${escapeHtml(item.uneguiLink)}" target="_blank">Unegui дээр нээх →</a>
+        </div>` : ""}
+      </div>`;
   }
 
   function render(items){
@@ -84,49 +146,78 @@
     layer.clearLayers();
 
     if (!items.length){
-      listEl.innerHTML = `<div class="muted">No matches.</div>`;
+      listEl.innerHTML = `<div class="muted">Илэрц олдсонгүй</div>`;
       return;
     }
 
     const bounds = [];
+
     for (const item of items){
-      const m = L.marker([item.lat, item.lng]).addTo(layer);
-      m.on("click", () => show(item));
-      bounds.push([item.lat, item.lng]);
+      const color = ICONS[item.torol] || "blue";
+      const m = L.marker([item.lat, item.lng], { icon: ICON_CACHE[color] })
+        .addTo(layer)
+        .bindPopup(popup(item));
+
+      m.on("click",()=>map.setView([item.lat,item.lng],14));
+      bounds.push([item.lat,item.lng]);
 
       const div = document.createElement("div");
       div.className = "item";
       div.innerHTML = `
-        <div style="font-weight:700">${escapeHtml(item.nershil || item.propertyId)}</div>
+        <div style="font-weight:700">${escapeHtml(item.nershil||item.propertyId)}</div>
         <div class="muted">${escapeHtml(item.location||"")}</div>
-        <div class="muted">${escapeHtml(item.propertyId||"")}</div>
+        <div class="muted">${escapeHtml(item.torol)}</div>
       `;
-      div.addEventListener("click", () => show(item));
+      div.onclick = ()=> {
+        map.setView([item.lat,item.lng],14);
+        m.openPopup();
+      };
       listEl.appendChild(div);
     }
 
-    if (bounds.length) map.fitBounds(bounds, { padding:[40,40] });
+    map.fitBounds(bounds,{ padding:[40,40], maxZoom:14 });
   }
 
   function apply(){
-    const q = qEl.value.trim();
-    const st = statusEl.value;
-    render(all.filter(x => matches(x, q, st)));
+    const q = qEl.value.toLowerCase().trim();
+    const t = typeEl.value;
+    render(all.filter(x=>{
+      if (t && x.torol !== t) return false;
+      if (!q) return true;
+      return [
+        x.propertyId,x.nershil,x.location
+      ].join(" ").toLowerCase().includes(q);
+    }));
   }
 
+  qEl.oninput = apply;
+  typeEl.onchange = apply;
+
   async function load(){
-    const res = await fetch(API_URL, { cache:"no-store" });
+    const res = await fetch(API_URL,{ cache:"no-store" });
     all = await res.json();
-    renderStatusOptions(all);
     apply();
   }
 
-  qEl.addEventListener("input", apply);
-  statusEl.addEventListener("change", apply);
-
-  load().catch(err => {
-    listEl.innerHTML = `<div style="color:#b00">Failed to load data: ${escapeHtml(err.message)}</div>`;
+  load().catch(err=>{
+    listEl.innerHTML = `<div style="color:#b00">Error: ${escapeHtml(err.message)}</div>`;
   });
+
+  // ---------- LEGEND ----------
+  const legend = L.control({ position:"bottomright" });
+  legend.onAdd = ()=>{
+    const d = L.DomUtil.create("div");
+    d.style.background="white";
+    d.style.padding="8px";
+    d.style.borderRadius="8px";
+    d.innerHTML = `
+      <div><span style="color:red">⬤</span> Борлуулах</div>
+      <div><span style="color:green">⬤</span> Түрээслэх</div>
+      <div><span style="color:blue">⬤</span> Хоёулаа</div>
+    `;
+    return d;
+  };
+  legend.addTo(map);
 </script>
 </body>
 </html>
