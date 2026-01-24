@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 
-<!-- Cyrillic-safe font that handles ө/ү reliably -->
+<!-- Cyrillic-safe font (ө/ү) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -31,7 +31,7 @@ html, body{
   text-rendering: optimizeLegibility;
   color:var(--text);
 }
-input, select, button, option{
+input, select, button, option, textarea{
   font-family: "Noto Sans", "Segoe UI", Arial, sans-serif !important;
 }
 *{ font-synthesis: none; }
@@ -49,7 +49,7 @@ input, select, button, option{
 
 /* Panel */
 .panel{
-  position:fixed; right:16px; top:110px; width:360px;
+  position:fixed; right:16px; top:110px; width:380px;
   background:#fff; border:1px solid var(--border);
   border-radius:14px; box-shadow:var(--shadow); z-index:9999;
   overflow:hidden;
@@ -92,7 +92,26 @@ input, select, button, option{
 }
 .switchWrap input{ transform: scale(1.1); }
 
-/* Mapon-style marker: colored pin + plain text */
+/* Range UI */
+.rangeWrap{
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:10px 12px;
+  background:#fff;
+  margin-bottom:12px;
+}
+.range{
+  width:100%;
+  margin:6px 0;
+}
+.rangeLabel{
+  margin-top:6px;
+  font-size:13px;
+  color:var(--muted);
+  font-weight:900;
+}
+
+/* Mapon-style marker: colored pin + text beside */
 .maponMarker{
   display:flex;
   align-items:center;
@@ -133,7 +152,7 @@ input, select, button, option{
 
 /* Drawer */
 .drawer{
-  position:fixed; right:16px; top:110px; bottom:16px; width:420px;
+  position:fixed; right:16px; top:110px; bottom:16px; width:440px;
   background:#fff; border:1px solid var(--border); border-radius:14px;
   box-shadow:var(--shadow); display:none; z-index:10000; overflow:hidden;
   max-height:calc(100dvh - 110px - 16px);
@@ -158,7 +177,7 @@ input, select, button, option{
 
 .drawerBody{
   padding:14px;
-  padding-bottom:48px; /* ensure last item fully visible */
+  padding-bottom:60px; /* ensure last item visible */
   overflow-y:auto;
   height:calc(100dvh - 110px - 16px - 60px);
   box-sizing:border-box;
@@ -198,6 +217,7 @@ input, select, button, option{
 .rowBox span:last-child{ margin-left:auto; }
 
 .valueNormal{ font-weight:600; color:var(--text); }
+a.cleanLink{ text-decoration:none; font-weight:950; }
 
 .checks{ display:flex; gap:18px; margin-top:10px; }
 .box{
@@ -234,6 +254,8 @@ input, select, button, option{
     <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршил (сонгох/typing)"/>
     <datalist id="bairshilList"></datalist>
 
+    <input class="input" id="nershilSearch" placeholder="Нэршил хайх (Tokyo, Hurel...)"/>
+
     <!-- No "Хоёулаа" option -->
     <select class="select" id="type">
       <option value="">Төрөл (Бүгд)</option>
@@ -244,6 +266,20 @@ input, select, button, option{
     <select class="select" id="pay">
       <option value="">Төлбөрийн нөхцөл (Бүгд)</option>
     </select>
+
+    <div style="font-weight:900; margin:6px 0 6px;">Үнэ (₮)</div>
+    <div class="rangeWrap">
+      <input type="range" id="priceMin" class="range"/>
+      <input type="range" id="priceMax" class="range"/>
+      <div class="rangeLabel" id="priceLabel"></div>
+    </div>
+
+    <div style="font-weight:900; margin:14px 0 6px;">Талбай (m²)</div>
+    <div class="rangeWrap">
+      <input type="range" id="m2Min" class="range"/>
+      <input type="range" id="m2Max" class="range"/>
+      <div class="rangeLabel" id="m2Label"></div>
+    </div>
 
     <div class="rowInline">
       <label class="switchWrap">
@@ -270,7 +306,7 @@ input, select, button, option{
 
 <script>
 /* ========= CONFIG ========= */
-const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLhOSG9iK7anYVUc54lw7z7Ze9g-sgvWTjW9OM-0fuVz-mCgi_3AF2SHS4RKUKSSx-qFYVeSzWU7G_8AebpMUgEMm9d3bGAr6NzRzt-653eaNWnrY6QKS42v5EKEgXsjtDnVunD9J9UQsE08i2W-uxhlRoudgEkqgbVZt5NfAS_D2p1H15szKh10bv6025VvoQWZUpWcH8xeOiYuykg-sMNBsPxGY04wNINO9RPHlHuMKW2MT8TYCscLzgzRfDW1RzUQRxCPH5drzJAzNT5pCPinm_SFVg&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
+const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
 /* ========= MAP ========= */
 const map = L.map("map").setView([47.918,106.917], 11);
@@ -293,9 +329,17 @@ collapseBtn.onclick = () => panelBody.classList.toggle("hidden");
 
 const bairshilSearch = document.getElementById("bairshilSearch");
 const bairshilList = document.getElementById("bairshilList");
+const nershilSearch = document.getElementById("nershilSearch");
 const typeEl = document.getElementById("type");
 const payEl = document.getElementById("pay");
 const clusterToggle = document.getElementById("clusterToggle");
+
+const priceMin = document.getElementById("priceMin");
+const priceMax = document.getElementById("priceMax");
+const priceLabel = document.getElementById("priceLabel");
+const m2Min = document.getElementById("m2Min");
+const m2Max = document.getElementById("m2Max");
+const m2Label = document.getElementById("m2Label");
 
 const drawer = document.getElementById("drawer");
 const drawerTitle = document.getElementById("drawerTitle");
@@ -308,15 +352,53 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
 }[c]));
 const norm = v => String(v ?? "").trim().toLowerCase();
 
+function toNumber(v){
+  const s = String(v ?? "").trim().replace(",", ".");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 function money(v){
   if (v === null || v === undefined || v === "") return "-";
-  const n = Number(String(v).toString().replace(",", "."));
+  const n = toNumber(v);
   if (!Number.isFinite(n)) return esc(String(v));
   return n.toLocaleString() + " ₮";
 }
+
 function valueOrDash(v){
   const s = String(v ?? "").trim();
   return s ? esc(s) : "-";
+}
+
+function normText(s){
+  return String(s ?? "")
+    .toLowerCase()
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+// "Fuzzy-ish": each token must exist in the name somewhere
+function fuzzyIncludes(haystack, query){
+  const h = normText(haystack);
+  const q = normText(query);
+  if (!q) return true;
+  const tokens = q.split(" ").filter(Boolean);
+  return tokens.every(t => h.includes(t));
+}
+
+function clampRanges(minEl, maxEl){
+  const minV = Number(minEl.value);
+  const maxV = Number(maxEl.value);
+  if (minV > maxV){
+    minEl.value = String(maxV);
+    maxEl.value = String(minV);
+  }
+}
+
+function fmtMoneyShort(n){
+  if (!Number.isFinite(n)) return "-";
+  if (n >= 1_000_000) return (n/1_000_000).toFixed(1) + "M ₮";
+  return n.toLocaleString() + " ₮";
 }
 
 function torolLabel(torol){
@@ -328,7 +410,7 @@ function torolPinColor(torol){
   const t = norm(torol);
   if (t === "борлуулах") return "#ef4444";
   if (t === "түрээслэх" || t === "түрээс") return "#22c55e";
-  return "#3b82f6"; // хоёулаа (still exists in data)
+  return "#3b82f6"; // хоёулаа
 }
 function chipClassForTorol(torol){
   const t = norm(torol);
@@ -358,13 +440,9 @@ function setLayerMode(clusterOn){
     map.addLayer(pinsLayer);
   }
 }
+clusterToggle.onchange = () => { setLayerMode(clusterToggle.checked); render(); };
 
-clusterToggle.onchange = () => {
-  setLayerMode(clusterToggle.checked);
-  render();
-};
-
-/* ========= MARKER ========= */
+/* ========= MARKERS ========= */
 function makeMarker(item){
   const title = esc(item.nershil || "");
   const uh = String(item.uhTorol ?? "").trim(); // "Байр" on pin label
@@ -374,7 +452,7 @@ function makeMarker(item){
     ? `${esc(item.uruu)} өрөө` : "";
 
   const info = [m2, uruu].filter(Boolean).join(" | ");
-  const sub = [uh, info].filter(Boolean).join(" • ");
+  const sub = [uh, info].filter(Boolean).join(" • "); // Байр • 55м² | 2 өрөө
 
   const pinColor = torolPinColor(item.torol);
 
@@ -434,6 +512,10 @@ function openDrawer(i){
   drawer.style.display = "block";
   drawerTitle.textContent = i.nershil || "-";
 
+  const gmapsUrl = (Number.isFinite(i.lat) && Number.isFinite(i.lng))
+    ? `https://www.google.com/maps/dir/?api=1&destination=${i.lat},${i.lng}`
+    : "";
+
   const garageBox = `<span class="box ${i.garaj ? "checked" : ""}">${i.garaj ? "✓" : ""}</span>`;
   const liftBox   = `<span class="box ${i.lift ? "checked" : ""}">${i.lift ? "✓" : ""}</span>`;
 
@@ -448,6 +530,13 @@ function openDrawer(i){
       <div class="stat"><div class="statLabel">Үнэ</div><div class="statValue">${money(i.une)}</div></div>
       <div class="stat"><div class="statLabel">M² үнэлгээ</div><div class="statValue">${valueOrDash(i.m2Uneleg)}</div></div>
     </div>
+
+    ${gmapsUrl ? `
+      <div class="rowBox">
+        <span>Google Maps</span>
+        <a class="cleanLink" href="${gmapsUrl}" target="_blank" rel="noopener">Чиглэл авах →</a>
+      </div>
+    ` : ""}
 
     <div class="rowBox"><span>Өрөө</span><span>${valueOrDash(i.uruu)}</span></div>
     <div class="rowBox"><span>Давхар / Байр Давхар</span><span>${valueOrDash(i.davhar)} / ${valueOrDash(i.bairDavhar)}</span></div>
@@ -497,12 +586,14 @@ function matchesFilters(item){
   const bair = norm(bairshilSearch.value);
   const torol = norm(typeEl.value);
   const pay = norm(payEl.value);
-  const itTorol = norm(item.torol);
-  const itPay = norm(item.tolborNohtsol);
 
   if (bair && norm(item.bairshil) !== bair) return false;
 
-  // Torol filter: show only Borлуулах / Түрээс, but include "хоёулаа" in both
+  // Name fuzzy search
+  if (nershilSearch.value && !fuzzyIncludes(item.nershil, nershilSearch.value)) return false;
+
+  // Torol: show Borлуулах / Түрээс only, include "хоёулаа" in both
+  const itTorol = norm(item.torol);
   if (torol) {
     if (torol === "борлуулах") {
       if (!(itTorol === "борлуулах" || itTorol === "хоёулаа")) return false;
@@ -513,13 +604,32 @@ function matchesFilters(item){
     }
   }
 
-  // Payment filter: choosing "Бэлэн мөнгө" matches "Бэлэн мөнгө болон Банк" too
+  // Payment: "Бэлэн мөнгө" matches "Бэлэн мөнгө болон Банк"
+  const itPay = norm(item.tolborNohtsol);
   if (pay) {
     if (pay === "бэлэн мөнгө") {
       if (!itPay.includes("бэлэн мөнгө")) return false;
     } else {
       if (itPay !== pay) return false;
     }
+  }
+
+  // Ranges
+  clampRanges(priceMin, priceMax);
+  clampRanges(m2Min, m2Max);
+
+  const p = toNumber(item.une);
+  const pMinV = Number(priceMin.value);
+  const pMaxV = Number(priceMax.value);
+  if (Number.isFinite(p)) {
+    if (p < pMinV || p > pMaxV) return false;
+  }
+
+  const a = toNumber(item.m2);
+  const aMinV = Number(m2Min.value);
+  const aMaxV = Number(m2Max.value);
+  if (Number.isFinite(a)) {
+    if (a < aMinV || a > aMaxV) return false;
   }
 
   return true;
@@ -549,23 +659,19 @@ function render(){
   }
 }
 
-/* filter events */
+/* events */
 bairshilSearch.addEventListener("input", render);
+nershilSearch.addEventListener("input", render);
 typeEl.addEventListener("change", render);
 payEl.addEventListener("change", render);
 
 /* ========= LOAD ========= */
-function toNumber(v){
-  const s = String(v ?? "").trim().replace(",", ".");
-  const n = Number(s);
-  return Number.isFinite(n) ? n : NaN;
-}
-
 fetch(API_URL)
   .then(r => r.json())
   .then(data => {
     const arr = Array.isArray(data) ? data : [];
 
+    // Robust lat/lng + numeric parsing
     ALL = arr.map(x => {
       const lat = toNumber(x.lat ?? x.Lat ?? x.latitude ?? x.LAT);
       const lng = toNumber(x.lng ?? x.long ?? x.Long ?? x.longitude ?? x.LNG ?? x.LON);
@@ -576,15 +682,50 @@ fetch(API_URL)
     const bairSet = new Set(ALL.map(x => (x.bairshil || "").trim()).filter(Boolean));
     bairshilList.innerHTML = [...bairSet].sort().map(v => `<option value="${esc(v)}">`).join("");
 
-    // Төлбөрийн нөхцөл dropdown:
-    // - includes all unique values
-    // - force-add "Бэлэн мөнгө" so it exists even if not exact in sheet
+    // Payment dropdown (force-add "Бэлэн мөнгө")
     const paySet = new Set(ALL.map(x => (x.tolborNohtsol || "").trim()).filter(Boolean));
     paySet.add("Бэлэн мөнгө");
-
     payEl.innerHTML =
       `<option value="">Төлбөрийн нөхцөл (Бүгд)</option>` +
       [...paySet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+
+    // Initialize ranges from data
+    const prices = ALL.map(x => toNumber(x.une)).filter(Number.isFinite);
+    const areas = ALL.map(x => toNumber(x.m2)).filter(Number.isFinite);
+
+    const pMin = prices.length ? Math.min(...prices) : 0;
+    const pMax = prices.length ? Math.max(...prices) : 1;
+    const aMin = areas.length ? Math.min(...areas) : 0;
+    const aMax = areas.length ? Math.max(...areas) : 1;
+
+    // price sliders
+    priceMin.min = String(Math.floor(pMin));
+    priceMin.max = String(Math.ceil(pMax));
+    priceMax.min = String(Math.floor(pMin));
+    priceMax.max = String(Math.ceil(pMax));
+    priceMin.value = priceMin.min;
+    priceMax.value = priceMax.max;
+
+    // m2 sliders
+    m2Min.min = String(Math.floor(aMin));
+    m2Min.max = String(Math.ceil(aMax));
+    m2Max.min = String(Math.floor(aMin));
+    m2Max.max = String(Math.ceil(aMax));
+    m2Min.value = m2Min.min;
+    m2Max.value = m2Max.max;
+
+    function updateLabels(){
+      clampRanges(priceMin, priceMax);
+      clampRanges(m2Min, m2Max);
+      priceLabel.textContent = `${fmtMoneyShort(Number(priceMin.value))} – ${fmtMoneyShort(Number(priceMax.value))}`;
+      m2Label.textContent = `${Number(m2Min.value)} – ${Number(m2Max.value)} m²`;
+    }
+    updateLabels();
+
+    priceMin.addEventListener("input", () => { updateLabels(); render(); });
+    priceMax.addEventListener("input", () => { updateLabels(); render(); });
+    m2Min.addEventListener("input", () => { updateLabels(); render(); });
+    m2Max.addEventListener("input", () => { updateLabels(); render(); });
 
     // default: pins only
     clusterToggle.checked = false;
