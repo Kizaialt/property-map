@@ -9,6 +9,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 
+<!-- noUiSlider -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css"/>
+
 <!-- Cyrillic-safe font (ө/ү) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,24 +95,43 @@ input, select, button, option, textarea{
 }
 .switchWrap input{ transform: scale(1.1); }
 
-/* Range UI */
-.rangeWrap{
+/* Slider wrap */
+.sliderWrap{
   border:1px solid var(--border);
   border-radius:14px;
-  padding:10px 12px;
+  padding:12px;
   background:#fff;
   margin-bottom:12px;
 }
-.range{
-  width:100%;
-  margin:6px 0;
-}
-.rangeLabel{
-  margin-top:6px;
+.sliderLabel{
+  margin-top:10px;
   font-size:13px;
   color:var(--muted);
   font-weight:900;
 }
+
+/* noUiSlider theme to match your UI */
+.noUi-target{
+  border:none;
+  box-shadow:none;
+  background:#e5e7eb;
+  border-radius:999px;
+  height:10px;
+}
+.noUi-connect{
+  background:#111827;
+}
+.noUi-handle{
+  width:22px !important;
+  height:22px !important;
+  right:-11px !important;
+  top:-6px !important;
+  border-radius:999px !important;
+  border:2px solid #111827 !important;
+  background:#fff !important;
+  box-shadow:none !important;
+}
+.noUi-handle:before, .noUi-handle:after{ display:none; }
 
 /* Mapon-style marker: colored pin + text beside */
 .maponMarker{
@@ -177,7 +199,7 @@ input, select, button, option, textarea{
 
 .drawerBody{
   padding:14px;
-  padding-bottom:60px; /* ensure last item visible */
+  padding-bottom:60px;
   overflow-y:auto;
   height:calc(100dvh - 110px - 16px - 60px);
   box-sizing:border-box;
@@ -268,17 +290,15 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
     </select>
 
     <div style="font-weight:900; margin:6px 0 6px;">Үнэ (₮)</div>
-    <div class="rangeWrap">
-      <input type="range" id="priceMin" class="range"/>
-      <input type="range" id="priceMax" class="range"/>
-      <div class="rangeLabel" id="priceLabel"></div>
+    <div class="sliderWrap">
+      <div id="priceSlider"></div>
+      <div class="sliderLabel" id="priceLabel"></div>
     </div>
 
     <div style="font-weight:900; margin:14px 0 6px;">Талбай (m²)</div>
-    <div class="rangeWrap">
-      <input type="range" id="m2Min" class="range"/>
-      <input type="range" id="m2Max" class="range"/>
-      <div class="rangeLabel" id="m2Label"></div>
+    <div class="sliderWrap">
+      <div id="m2Slider"></div>
+      <div class="sliderLabel" id="m2Label"></div>
     </div>
 
     <div class="rowInline">
@@ -303,6 +323,7 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
 
 <script>
 /* ========= CONFIG ========= */
@@ -334,11 +355,9 @@ const typeEl = document.getElementById("type");
 const payEl = document.getElementById("pay");
 const clusterToggle = document.getElementById("clusterToggle");
 
-const priceMin = document.getElementById("priceMin");
-const priceMax = document.getElementById("priceMax");
+const priceSliderEl = document.getElementById("priceSlider");
 const priceLabel = document.getElementById("priceLabel");
-const m2Min = document.getElementById("m2Min");
-const m2Max = document.getElementById("m2Max");
+const m2SliderEl = document.getElementById("m2Slider");
 const m2Label = document.getElementById("m2Label");
 
 const drawer = document.getElementById("drawer");
@@ -357,27 +376,23 @@ function toNumber(v){
   const n = Number(s);
   return Number.isFinite(n) ? n : NaN;
 }
-
 function money(v){
   if (v === null || v === undefined || v === "") return "-";
   const n = toNumber(v);
   if (!Number.isFinite(n)) return esc(String(v));
   return n.toLocaleString() + " ₮";
 }
-
 function valueOrDash(v){
   const s = String(v ?? "").trim();
   return s ? esc(s) : "-";
 }
-
 function normText(s){
   return String(s ?? "")
     .toLowerCase()
     .replace(/\s+/g," ")
     .trim();
 }
-
-// "Fuzzy-ish": each token must exist in the name somewhere
+// token-based "fuzzy-ish"
 function fuzzyIncludes(haystack, query){
   const h = normText(haystack);
   const q = normText(query);
@@ -385,16 +400,6 @@ function fuzzyIncludes(haystack, query){
   const tokens = q.split(" ").filter(Boolean);
   return tokens.every(t => h.includes(t));
 }
-
-function clampRanges(minEl, maxEl){
-  const minV = Number(minEl.value);
-  const maxV = Number(maxEl.value);
-  if (minV > maxV){
-    minEl.value = String(maxV);
-    maxEl.value = String(minV);
-  }
-}
-
 function fmtMoneyShort(n){
   if (!Number.isFinite(n)) return "-";
   if (n >= 1_000_000) return (n/1_000_000).toFixed(1) + "M ₮";
@@ -441,6 +446,10 @@ function setLayerMode(clusterOn){
   }
 }
 clusterToggle.onchange = () => { setLayerMode(clusterToggle.checked); render(); };
+
+/* ========= SLIDER STATE ========= */
+let priceRange = { min: -Infinity, max: Infinity };
+let m2Range = { min: -Infinity, max: Infinity };
 
 /* ========= MARKERS ========= */
 function makeMarker(item){
@@ -614,22 +623,16 @@ function matchesFilters(item){
     }
   }
 
-  // Ranges
-  clampRanges(priceMin, priceMax);
-  clampRanges(m2Min, m2Max);
-
+  // Price range (only if item has numeric price)
   const p = toNumber(item.une);
-  const pMinV = Number(priceMin.value);
-  const pMaxV = Number(priceMax.value);
   if (Number.isFinite(p)) {
-    if (p < pMinV || p > pMaxV) return false;
+    if (p < priceRange.min || p > priceRange.max) return false;
   }
 
+  // m2 range (only if item has numeric m2)
   const a = toNumber(item.m2);
-  const aMinV = Number(m2Min.value);
-  const aMaxV = Number(m2Max.value);
   if (Number.isFinite(a)) {
-    if (a < aMinV || a > aMaxV) return false;
+    if (a < m2Range.min || a > m2Range.max) return false;
   }
 
   return true;
@@ -665,6 +668,57 @@ nershilSearch.addEventListener("input", render);
 typeEl.addEventListener("change", render);
 payEl.addEventListener("change", render);
 
+/* ========= SLIDERS INIT ========= */
+function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
+  // Destroy if re-init (safety)
+  if (priceSliderEl.noUiSlider) priceSliderEl.noUiSlider.destroy();
+  if (m2SliderEl.noUiSlider) m2SliderEl.noUiSlider.destroy();
+
+  noUiSlider.create(priceSliderEl, {
+    start: [pricesMin, pricesMax],
+    connect: true,
+    range: { min: pricesMin, max: pricesMax },
+    step: 1000000, // 1,000,000 ₮ step to keep it usable
+    format: {
+      to: v => Math.round(v),
+      from: v => Number(v)
+    }
+  });
+
+  noUiSlider.create(m2SliderEl, {
+    start: [m2MinV, m2MaxV],
+    connect: true,
+    range: { min: m2MinV, max: m2MaxV },
+    step: 1,
+    format: {
+      to: v => Math.round(v),
+      from: v => Number(v)
+    }
+  });
+
+  function updatePrice(){
+    const v = priceSliderEl.noUiSlider.get().map(Number);
+    priceRange.min = v[0]; priceRange.max = v[1];
+    priceLabel.textContent = `${fmtMoneyShort(priceRange.min)} – ${fmtMoneyShort(priceRange.max)}`;
+  }
+  function updateM2(){
+    const v = m2SliderEl.noUiSlider.get().map(Number);
+    m2Range.min = v[0]; m2Range.max = v[1];
+    m2Label.textContent = `${m2Range.min} – ${m2Range.max} m²`;
+  }
+
+  priceSliderEl.noUiSlider.on("update", () => { updatePrice(); });
+  m2SliderEl.noUiSlider.on("update", () => { updateM2(); });
+
+  // render only when user finishes sliding (better performance)
+  priceSliderEl.noUiSlider.on("set", () => { updatePrice(); render(); });
+  m2SliderEl.noUiSlider.on("set", () => { updateM2(); render(); });
+
+  // initial label + ranges
+  updatePrice();
+  updateM2();
+}
+
 /* ========= LOAD ========= */
 fetch(API_URL)
   .then(r => r.json())
@@ -689,43 +743,24 @@ fetch(API_URL)
       `<option value="">Төлбөрийн нөхцөл (Бүгд)</option>` +
       [...paySet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // Initialize ranges from data
+    // Initialize slider ranges from data
     const prices = ALL.map(x => toNumber(x.une)).filter(Number.isFinite);
     const areas = ALL.map(x => toNumber(x.m2)).filter(Number.isFinite);
 
-    const pMin = prices.length ? Math.min(...prices) : 0;
-    const pMax = prices.length ? Math.max(...prices) : 1;
-    const aMin = areas.length ? Math.min(...areas) : 0;
-    const aMax = areas.length ? Math.max(...areas) : 1;
+    const pMin = prices.length ? Math.floor(Math.min(...prices)) : 0;
+    const pMax = prices.length ? Math.ceil(Math.max(...prices)) : 1;
 
-    // price sliders
-    priceMin.min = String(Math.floor(pMin));
-    priceMin.max = String(Math.ceil(pMax));
-    priceMax.min = String(Math.floor(pMin));
-    priceMax.max = String(Math.ceil(pMax));
-    priceMin.value = priceMin.min;
-    priceMax.value = priceMax.max;
+    const aMin = areas.length ? Math.floor(Math.min(...areas)) : 0;
+    const aMax = areas.length ? Math.ceil(Math.max(...areas)) : 1;
 
-    // m2 sliders
-    m2Min.min = String(Math.floor(aMin));
-    m2Min.max = String(Math.ceil(aMax));
-    m2Max.min = String(Math.floor(aMin));
-    m2Max.max = String(Math.ceil(aMax));
-    m2Min.value = m2Min.min;
-    m2Max.value = m2Max.max;
+    // If min==max, expand slightly to avoid slider crash
+    const pMinSafe = pMin === pMax ? Math.max(0, pMin - 1_000_000) : pMin;
+    const pMaxSafe = pMin === pMax ? pMax + 1_000_000 : pMax;
 
-    function updateLabels(){
-      clampRanges(priceMin, priceMax);
-      clampRanges(m2Min, m2Max);
-      priceLabel.textContent = `${fmtMoneyShort(Number(priceMin.value))} – ${fmtMoneyShort(Number(priceMax.value))}`;
-      m2Label.textContent = `${Number(m2Min.value)} – ${Number(m2Max.value)} m²`;
-    }
-    updateLabels();
+    const aMinSafe = aMin === aMax ? Math.max(0, aMin - 1) : aMin;
+    const aMaxSafe = aMin === aMax ? aMax + 1 : aMax;
 
-    priceMin.addEventListener("input", () => { updateLabels(); render(); });
-    priceMax.addEventListener("input", () => { updateLabels(); render(); });
-    m2Min.addEventListener("input", () => { updateLabels(); render(); });
-    m2Max.addEventListener("input", () => { updateLabels(); render(); });
+    initNoUiSliders(pMinSafe, pMaxSafe, aMinSafe, aMaxSafe);
 
     // default: pins only
     clusterToggle.checked = false;
