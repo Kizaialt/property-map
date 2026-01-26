@@ -25,6 +25,31 @@
   --border:#e5e7eb;
   --shadow:0 10px 25px rgba(0,0,0,.12);
 }
+.linkBtns{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+.linkBtn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px 12px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:#fff;
+  box-shadow:none;
+  font-weight:950;
+  text-decoration:none;
+  color:var(--text);
+}
+.linkBtn:hover{ background:#f9fafb; }
+.linkBtn:active{ transform: translateY(1px); }
+.linkBtn.disabled{
+  opacity:.45;
+  pointer-events:none;
+}
 
 html, body{
   margin:0; height:100%;
@@ -525,6 +550,8 @@ function openDrawer(i){
     ? `https://www.google.com/maps/dir/?api=1&destination=${i.lat},${i.lng}`
     : "";
 
+  const matterportUrl = String(i.matterport || "").trim();
+  const listUrl = String(i.listLink || "").trim();
   const garageBox = `<span class="box ${i.garaj ? "checked" : ""}">${i.garaj ? "✓" : ""}</span>`;
   const liftBox   = `<span class="box ${i.lift ? "checked" : ""}">${i.lift ? "✓" : ""}</span>`;
 
@@ -580,6 +607,20 @@ function openDrawer(i){
 
     <div class="section sectionCenter">Дэлгэрэнгүй тайлбар</div>
     <div class="valueNormal" style="white-space:pre-line;">${valueOrDash(i.delgerenguiTailbar)}</div>
+
+<div class="linkBtns">
+  <a class="linkBtn ${matterportUrl ? "" : "disabled"}"
+     href="${matterportUrl ? esc(matterportUrl) : "#"}"
+     target="_blank" rel="noopener">
+     MATTERPORT
+  </a>
+
+  <a class="linkBtn ${listUrl ? "" : "disabled"}"
+     href="${listUrl ? esc(listUrl) : "#"}"
+     target="_blank" rel="noopener">
+     LIST LINK
+  </a>
+</div>
 
     <div class="rowBox" style="margin-top:16px;">
       <span>List Agent</span>
