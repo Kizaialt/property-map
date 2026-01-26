@@ -477,6 +477,9 @@ let priceRange = { min: -Infinity, max: Infinity };
 let m2Range = { min: -Infinity, max: Infinity };
 const PRICE_CAP = 2000 * 1_000_000; // 2,000M ₮
 const PRICE_STEP = 50_000_000;      // 10M step (adjust if you want)
+const AREA_CAP = 1000; // 1000 m²
+const AREA_STEP = 10;  // 10 m² increments
+
   
 /* ========= MARKERS ========= */
 function makeMarker(item){
@@ -679,9 +682,14 @@ function matchesFilters(item){
 
   // m2 range (only if item has numeric m2)
   const a = toNumber(item.m2);
-  if (Number.isFinite(a)) {
+if (Number.isFinite(a)) {
+  // If max is at cap, treat as 1000+
+  if (m2Range.max >= AREA_CAP) {
+    if (a < m2Range.min) return false;
+  } else {
     if (a < m2Range.min || a > m2Range.max) return false;
   }
+}
 
   return true;
 }
@@ -734,15 +742,15 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
   });
 
   noUiSlider.create(m2SliderEl, {
-    start: [m2MinV, m2MaxV],
-    connect: true,
-    range: { min: m2MinV, max: m2MaxV },
-    step: 1,
-    format: {
-      to: v => Math.round(v),
-      from: v => Number(v)
-    }
-  });
+  start: [m2MinV, m2MaxV],
+  connect: true,
+  range: { min: 0, max: AREA_CAP },
+  step: AREA_STEP,
+  format: {
+    to: v => Math.round(v),
+    from: v => Number(v)
+  }
+});
 
   function updatePrice(){
     const v = priceSliderEl.noUiSlider.get().map(Number);
@@ -756,7 +764,11 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
   function updateM2(){
     const v = m2SliderEl.noUiSlider.get().map(Number);
     m2Range.min = v[0]; m2Range.max = v[1];
-    m2Label.textContent = `${m2Range.min} – ${m2Range.max} m²`;
+    m2Label.textContent =
+      (m2Range.max >= AREA_CAP)
+      ? `${m2Range.min} – 1000+ m²`
+      : `${m2Range.min} – ${m2Range.max} m²`;
+
   }
 
   priceSliderEl.noUiSlider.on("update", () => { updatePrice(); });
@@ -803,8 +815,9 @@ fetch(API_URL)
     const pMin = 0;          // start from 0 for usability
     const pMax = PRICE_CAP;  // hard cap at 2000M
 
-    const aMin = areas.length ? Math.floor(Math.min(...areas)) : 0;
-    const aMax = areas.length ? Math.ceil(Math.max(...areas)) : 1;
+    // Area slider should be usable
+    const aMin = 0;
+    const aMax = AREA_CAP;
 
     const PAD = 1_000_000;
 
@@ -816,8 +829,13 @@ fetch(API_URL)
     ? Math.min(PRICE_CAP, pMax + PAD) // never exceed cap
     : pMax;
 
-    const aMinSafe = aMin === aMax ? Math.max(0, aMin - 1) : aMin;
-    const aMaxSafe = aMin === aMax ? aMax + 1 : aMax;
+    const AREA_PAD = 10;
+    const aMinSafe = (aMin === aMax)
+      ? Math.max(0, aMin - AREA_PAD)
+      : aMin;
+    const aMaxSafe = (aMin === aMax)
+      ? Math.min(AREA_CAP, aMax + AREA_PAD)
+      : aMax;
 
     initNoUiSliders(pMinSafe, pMaxSafe, aMinSafe, aMaxSafe);
 
