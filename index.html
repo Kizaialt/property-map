@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>PROPERTY_INVENTORY</title>
+<title>WePro Үл хөдлөх сан</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -268,15 +268,15 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
 
 <div class="panel">
   <div class="panelHeader">
-    <div>PROPERTY_INVENTORY</div>
+    <div>WePro Үл хөдлөх сан</div>
     <button class="btn" id="collapseBtn">☰</button>
   </div>
 
   <div class="panelBody" id="panelBody">
-    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршил (сонгох/typing)"/>
+    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Байршил"/>
     <datalist id="bairshilList"></datalist>
 
-    <input class="input" id="nershilSearch" placeholder="Нэршил хайх (Tokyo, Hurel...)"/>
+    <input class="input" id="nershilSearch" placeholder="Нэршилээр хайх (120,яармаг г.м)"/>
 
     <!-- No "Хоёулаа" option -->
     <select class="select" id="type">
@@ -304,10 +304,10 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
     <div class="rowInline">
       <label class="switchWrap">
         <input type="checkbox" id="clusterToggle">
-        Cluster
+        Багцлах
       </label>
       <div style="color:var(--muted);font-weight:900;font-size:12px;">
-        (Auto-off when zoomed in)
+        (Томруулахад гарч ирэх болно)
       </div>
     </div>
   </div>
