@@ -475,7 +475,9 @@ clusterToggle.onchange = () => { setLayerMode(clusterToggle.checked); render(); 
 /* ========= SLIDER STATE ========= */
 let priceRange = { min: -Infinity, max: Infinity };
 let m2Range = { min: -Infinity, max: Infinity };
-
+const PRICE_CAP = 2000 * 1_000_000; // 2,000M ₮
+const PRICE_STEP = 10_000_000;      // 10M step (adjust if you want)
+  
 /* ========= MARKERS ========= */
 function makeMarker(item){
   const title = esc(item.nershil || "");
@@ -667,8 +669,13 @@ function matchesFilters(item){
   // Price range (only if item has numeric price)
   const p = toNumber(item.une);
   if (Number.isFinite(p)) {
+  // If user set max to cap, treat it as 2000+ (no upper bound)
+  if (priceRange.max >= PRICE_CAP) {
+    if (p < priceRange.min) return false;
+  } else {
     if (p < priceRange.min || p > priceRange.max) return false;
   }
+}
 
   // m2 range (only if item has numeric m2)
   const a = toNumber(item.m2);
@@ -718,8 +725,8 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
   noUiSlider.create(priceSliderEl, {
     start: [pricesMin, pricesMax],
     connect: true,
-    range: { min: pricesMin, max: pricesMax },
-    step: 1000000, // 1,000,000 ₮ step to keep it usable
+    range: { min: 0, max: PRICE_CAP },   // force 0..2000M
+    step: PRICE_STEP,                    // 10M step
     format: {
       to: v => Math.round(v),
       from: v => Number(v)
@@ -740,7 +747,11 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
   function updatePrice(){
     const v = priceSliderEl.noUiSlider.get().map(Number);
     priceRange.min = v[0]; priceRange.max = v[1];
-    priceLabel.textContent = `${fmtMoneyShort(priceRange.min)} – ${fmtMoneyShort(priceRange.max)}`;
+    priceLabel.textContent =
+      (priceRange.max >= PRICE_CAP)
+      ? `${fmtMoneyShort(priceRange.min)} – 2000+ ₮`
+      : `${fmtMoneyShort(priceRange.min)} – ${fmtMoneyShort(priceRange.max)}`;
+
   }
   function updateM2(){
     const v = m2SliderEl.noUiSlider.get().map(Number);
@@ -788,15 +799,22 @@ fetch(API_URL)
     const prices = ALL.map(x => toNumber(x.une)).filter(Number.isFinite);
     const areas = ALL.map(x => toNumber(x.m2)).filter(Number.isFinite);
 
-    const pMin = prices.length ? Math.floor(Math.min(...prices)) : 0;
-    const pMax = prices.length ? Math.ceil(Math.max(...prices)) : 1;
+    // Price slider should be usable, not destroyed by one expensive listing
+    const pMin = 0;          // start from 0 for usability
+    const pMax = PRICE_CAP;  // hard cap at 2000M
 
     const aMin = areas.length ? Math.floor(Math.min(...areas)) : 0;
     const aMax = areas.length ? Math.ceil(Math.max(...areas)) : 1;
 
-    // If min==max, expand slightly to avoid slider crash
-    const pMinSafe = pMin === pMax ? Math.max(0, pMin - 1_000_000) : pMin;
-    const pMaxSafe = pMin === pMax ? pMax + 1_000_000 : pMax;
+    const PAD = 1_000_000;
+
+    const pMinSafe = (pMin === pMax)
+    ? Math.max(0, pMin - PAD)
+    : pMin;
+    
+    const pMaxSafe = (pMin === pMax)
+    ? Math.min(PRICE_CAP, pMax + PAD) // never exceed cap
+    : pMax;
 
     const aMinSafe = aMin === aMax ? Math.max(0, aMin - 1) : aMin;
     const aMaxSafe = aMin === aMax ? aMax + 1 : aMax;
