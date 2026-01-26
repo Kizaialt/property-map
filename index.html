@@ -477,7 +477,7 @@ let priceRange = { min: -Infinity, max: Infinity };
 let m2Range = { min: -Infinity, max: Infinity };
 const PRICE_CAP = 2000 * 1_000_000; // 2,000M ₮
 const PRICE_STEP = 50_000_000;      // 10M step (adjust if you want)
-const AREA_CAP = 500; // 500 m²
+const AREA_CAP = 300; // 300 m²
 const AREA_STEP = 10;  // 10 m² increments
 
   
@@ -766,7 +766,7 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
     m2Range.min = v[0]; m2Range.max = v[1];
     m2Label.textContent =
       (m2Range.max >= AREA_CAP)
-      ? `${m2Range.min} – 500+ m²`
+      ? `${m2Range.min} – 300+ m²`
       : `${m2Range.min} – ${m2Range.max} m²`;
 
   }
