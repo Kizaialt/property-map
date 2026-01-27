@@ -51,6 +51,49 @@
   pointer-events:none;
 }
 
+.topRow{
+  display:grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.agentWrap .select{
+  margin-bottom:0;
+}
+
+.searchWrap{
+  position:relative;
+}
+
+.searchWrap .input{
+  margin-bottom:0;
+  padding-right:42px; /* space for X */
+}
+
+.clearBtn{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  width:28px;
+  height:28px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:#fff;
+  font-size:18px;
+  font-weight:950;
+  line-height:1;
+  cursor:pointer;
+  color:var(--muted);
+  display:none; /* hidden until typing */
+}
+
+.clearBtn:hover{
+  background:#f3f4f6;
+  color:var(--text);
+}
+
 html, body{
   margin:0; height:100%;
   font-family: "Noto Sans", "Segoe UI", Arial, sans-serif !important;
@@ -379,6 +422,9 @@ const nershilSearch = document.getElementById("nershilSearch");
 const typeEl = document.getElementById("type");
 const payEl = document.getElementById("pay");
 const clusterToggle = document.getElementById("clusterToggle");
+const agentEl = document.getElementById("agent");
+const clearBairshilBtn = document.getElementById("clearBairshil");
+
 
 const priceSliderEl = document.getElementById("priceSlider");
 const priceLabel = document.getElementById("priceLabel");
@@ -641,8 +687,11 @@ function matchesFilters(item){
   const bair = norm(bairshilSearch.value);
   const torol = norm(typeEl.value);
   const pay = norm(payEl.value);
+  const agent = norm(agentEl.value);
 
   if (bair && norm(item.bairshil) !== bair) return false;
+  if (agent && norm(item.listAgent) !== agent) return false;
+
 
   // Name fuzzy search
   if (nershilSearch.value && !fuzzyIncludes(item.nershil, nershilSearch.value)) return false;
@@ -719,7 +768,22 @@ function render(){
 }
 
 /* events */
-bairshilSearch.addEventListener("input", render);
+function updateClearBtn(){
+  clearBairshilBtn.style.display = bairshilSearch.value.trim() ? "block" : "none";
+}
+
+clearBairshilBtn.onclick = () => {
+  bairshilSearch.value = "";
+  updateClearBtn();
+  render();
+};
+
+bairshilSearch.addEventListener("input", () => {
+  updateClearBtn();
+  render();
+});
+
+agentEl.addEventListener("change", render);
 nershilSearch.addEventListener("input", render);
 typeEl.addEventListener("change", render);
 payEl.addEventListener("change", render);
@@ -806,6 +870,13 @@ fetch(API_URL)
     payEl.innerHTML =
       `<option value="">Төлбөрийн нөхцөл (Бүгд)</option>` +
       [...paySet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+    
+    // List Agent dropdown
+    const agentSet = new Set(ALL.map(x => (x.listAgent || "").trim()).filter(Boolean));
+    agentEl.innerHTML =
+      `<option value="">List Agent</option>` +
+      [...agentSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+
 
     // Initialize slider ranges from data
     const prices = ALL.map(x => toNumber(x.une)).filter(Number.isFinite);
