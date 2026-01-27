@@ -341,8 +341,21 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
   </div>
 
   <div class="panelBody" id="panelBody">
-    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Дүүргээр"/>
+    <div class="topRow">
+  <div class="agentWrap">
+    <select class="select" id="agent">
+      <option value="">List Agent</option>
+    </select>
+  </div>
+
+  <div class="searchWrap">
+    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Дүүрэг"/>
+    <button class="clearBtn" id="clearBairshil" type="button" title="Clear">×</button>
     <datalist id="bairshilList"></datalist>
+  </div>
+</div>
+
+    
 
     <input class="input" id="nershilSearch" placeholder="Нэршилээр хайх (agartha, central tower г.м)"/>
 
@@ -787,6 +800,18 @@ agentEl.addEventListener("change", render);
 nershilSearch.addEventListener("input", render);
 typeEl.addEventListener("change", render);
 payEl.addEventListener("change", render);
+  
+if (clearBairshilBtn){
+  clearBairshilBtn.onclick = () => {
+    bairshilSearch.value = "";
+    updateClearBtn();
+    render();
+  };
+}
+
+if (agentEl){
+  agentEl.addEventListener("change", render);
+}
 
 /* ========= SLIDERS INIT ========= */
 function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
