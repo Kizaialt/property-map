@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>WEMAP</title>
+<title>PROPERTY_INVENTORY</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -51,7 +51,6 @@
   pointer-events:none;
 }
 
-/* Two items in one row */
 .topRow{
   display:grid;
   grid-template-columns: 1fr 1fr;
@@ -60,35 +59,6 @@
 }
 .topRow .select,
 .topRow .input{ margin-bottom:0; }
-
-.searchWrap{
-  position:relative;
-}
-.searchWrap .input{
-  margin-bottom:0;
-  padding-right:42px; /* space for X */
-}
-.clearBtn{
-  position:absolute;
-  right:10px;
-  top:50%;
-  transform:translateY(-50%);
-  width:28px;
-  height:28px;
-  border-radius:10px;
-  border:1px solid var(--border);
-  background:#fff;
-  font-size:18px;
-  font-weight:950;
-  line-height:1;
-  cursor:pointer;
-  color:var(--muted);
-  display:none; /* hidden until typing */
-}
-.clearBtn:hover{
-  background:#f3f4f6;
-  color:var(--text);
-}
 
 html, body{
   margin:0; height:100%;
@@ -174,7 +144,7 @@ input, select, button, option, textarea{
   font-weight:900;
 }
 
-/* noUiSlider theme to match your UI */
+/* noUiSlider theme */
 .noUi-target{
   border:none;
   box-shadow:none;
@@ -197,7 +167,7 @@ input, select, button, option, textarea{
 }
 .noUi-handle:before, .noUi-handle:after{ display:none; }
 
-/* Mapon-style marker: colored pin + text beside */
+/* Mapon marker */
 .maponMarker{
   display:flex;
   align-items:center;
@@ -351,7 +321,7 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
 
     <input class="input" id="nershilSearch" placeholder="Нэршилээр хайх (agartha, central tower г.м)"/>
 
-    <!-- Row 2: Төрөл + Дүүрэг (District on RIGHT) -->
+    <!-- Row 2: Төрөл + Дүүрэг (DROPDOWN NOW) -->
     <div class="topRow">
       <select class="select" id="type">
         <option value="">Борлуулах болон Түрээслэх</option>
@@ -359,11 +329,9 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
         <option value="түрээслэх">зөвхөн Түрээс</option>
       </select>
 
-      <div class="searchWrap">
-        <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Дүүрэг"/>
-        <button class="clearBtn" id="clearBairshil" type="button" title="Clear">×</button>
-        <datalist id="bairshilList"></datalist>
-      </div>
+      <select class="select" id="district">
+        <option value="">Дүүрэг (Бүгд)</option>
+      </select>
     </div>
 
     <select class="select" id="pay">
@@ -429,15 +397,11 @@ const collapseBtn = document.getElementById("collapseBtn");
 const panelBody = document.getElementById("panelBody");
 collapseBtn.onclick = () => panelBody.classList.toggle("hidden");
 
-const bairshilSearch = document.getElementById("bairshilSearch");
-const bairshilList = document.getElementById("bairshilList");
-const clearBairshilBtn = document.getElementById("clearBairshil");
-
 const nershilSearch = document.getElementById("nershilSearch");
 const typeEl = document.getElementById("type");
+const districtEl = document.getElementById("district");
 const payEl = document.getElementById("pay");
 const clusterToggle = document.getElementById("clusterToggle");
-
 const agentEl = document.getElementById("agent");
 const uhEl = document.getElementById("uh");
 
@@ -490,12 +454,6 @@ function fmtMoneyShort(n){
   const million = Math.round(n / 1_000_000);
   return `${million} сая ₮`;
 }
-
-function torolLabel(torol){
-  const t = norm(torol);
-  if (t === "түрээслэх") return "түрээс";
-  return t;
-}
 function torolPinColor(torol){
   const t = norm(torol);
   if (t === "борлуулах") return "#ef4444";
@@ -507,6 +465,11 @@ function chipClassForTorol(torol){
   if (t === "борлуулах") return "red";
   if (t === "түрээслэх" || t === "түрээс") return "green";
   return "blue";
+}
+function torolLabel(torol){
+  const t = norm(torol);
+  if (t === "түрээслэх") return "түрээс";
+  return t;
 }
 
 /* ========= LAYERS ========= */
@@ -539,7 +502,7 @@ let m2Range = { min: -Infinity, max: Infinity };
 const PRICE_CAP = 2000 * 1_000_000;
 const PRICE_STEP = 50_000_000;
 
-const AREA_CAP = 300;     // keep your setting
+const AREA_CAP = 300;
 const AREA_STEP = 10;
 
 /* ========= MARKERS ========= */
@@ -612,12 +575,9 @@ function openDrawer(i){
   drawer.style.display = "block";
   drawerTitle.textContent = i.nershil || "-";
 
-  const gmapsUrl = (Number.isFinite(i.lat) && Number.isFinite(i.lng))
-    ? `https://www.google.com/maps/dir/?api=1&destination=${i.lat},${i.lng}`
-    : "";
-
   const matterportUrl = String(i.matterport || "").trim();
   const listUrl = String(i.listLink || "").trim();
+
   const garageBox = `<span class="box ${i.garaj ? "checked" : ""}">${i.garaj ? "✓" : ""}</span>`;
   const liftBox   = `<span class="box ${i.lift ? "checked" : ""}">${i.lift ? "✓" : ""}</span>`;
 
@@ -632,13 +592,6 @@ function openDrawer(i){
       <div class="stat"><div class="statLabel">Үнэ</div><div class="statValue">${money(i.une)}</div></div>
       <div class="stat"><div class="statLabel">M² үнэлгээ</div><div class="statValue">${valueOrDash(i.m2Uneleg)}</div></div>
     </div>
-
-    ${gmapsUrl ? `
-      <div class="rowBox">
-        <span>Google Maps</span>
-        <a class="cleanLink" href="${gmapsUrl}" target="_blank" rel="noopener">Чиглэл авах →</a>
-      </div>
-    ` : ""}
 
     <div class="rowBox"><span>Өрөө</span><span>${valueOrDash(i.uruu)}</span></div>
     <div class="rowBox"><span>Давхар / Байр Давхар</span><span>${valueOrDash(i.davhar)} / ${valueOrDash(i.bairDavhar)}</span></div>
@@ -696,20 +649,44 @@ let ALL = [];
 
 function matchesFilters(item){
   const agent = norm(agentEl.value);
-  const uh = norm(uhEl.value);
-
-  const bair = norm(bairshilSearch.value);
+  const uh = String(uhEl.value || "").trim();
   const torol = norm(typeEl.value);
+  const district = norm(districtEl.value);
   const pay = norm(payEl.value);
 
   if (agent && norm(item.listAgent) !== agent) return false;
-  if (uh && norm(item.uhTorol) !== uh) return false;
 
-  if (bair && norm(item.bairshil) !== bair) return false;
+  // ҮХ Төрөл category filtering
+  if (uh) {
+    const itUH = norm(item.uhTorol);
 
+    if (uh === "cat_gazar") {
+      if (itUH !== "газар") return false;
+    } else if (uh === "cat_zuslan") {
+      if (itUH !== "зуслан") return false;
+    } else if (uh === "cat_object") {
+      if (itUH !== "обьект" && itUH !== "объект") return false;
+    } else if (uh === "cat_gazar_object") {
+      const allowed = new Set([
+        "газар",
+        "газартай обьект",
+        "газартай объект",
+        "зуслан",
+        "обьект",
+        "объект",
+        "хашаа байшин"
+      ]);
+      if (!allowed.has(itUH)) return false;
+    }
+  }
+
+  // District dropdown exact match
+  if (district && norm(item.bairshil) !== district) return false;
+
+  // Name fuzzy search
   if (nershilSearch.value && !fuzzyIncludes(item.nershil, nershilSearch.value)) return false;
 
-  // Torol: show Borлуулах / Түрээс only, include "хоёулаа" in both
+  // Torol filter (include "хоёулаа" in both)
   const itTorol = norm(item.torol);
   if (torol) {
     if (torol === "борлуулах") {
@@ -741,7 +718,7 @@ function matchesFilters(item){
     }
   }
 
-  // m2 range
+  // Area range
   const a = toNumber(item.m2);
   if (Number.isFinite(a)) {
     if (m2Range.max >= AREA_CAP) {
@@ -779,18 +756,9 @@ function render(){
 }
 
 /* ========= EVENTS ========= */
-function updateClearBtn(){
-  clearBairshilBtn.style.display = bairshilSearch.value.trim() ? "block" : "none";
-}
-clearBairshilBtn.onclick = () => {
-  bairshilSearch.value = "";
-  updateClearBtn();
-  render();
-};
-bairshilSearch.addEventListener("input", () => { updateClearBtn(); render(); });
-
 agentEl.addEventListener("change", render);
 uhEl.addEventListener("change", render);
+districtEl.addEventListener("change", render);
 nershilSearch.addEventListener("input", render);
 typeEl.addEventListener("change", render);
 payEl.addEventListener("change", render);
@@ -855,11 +823,13 @@ fetch(API_URL)
       return { ...x, lat, lng };
     }).filter(x => Number.isFinite(x.lat) && Number.isFinite(x.lng));
 
-    // District datalist
-    const bairSet = new Set(ALL.map(x => (x.bairshil || "").trim()).filter(Boolean));
-    bairshilList.innerHTML = [...bairSet].sort().map(v => `<option value="${esc(v)}">`).join("");
+    // District dropdown
+    const districtSet = new Set(ALL.map(x => (x.bairshil || "").trim()).filter(Boolean));
+    districtEl.innerHTML =
+      `<option value="">Дүүрэг (Бүгд)</option>` +
+      [...districtSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // Payment dropdown (force-add "Бэлэн мөнгө")
+    // Payment dropdown
     const paySet = new Set(ALL.map(x => (x.tolborNohtsol || "").trim()).filter(Boolean));
     paySet.add("Бэлэн мөнгө");
     payEl.innerHTML =
@@ -872,18 +842,18 @@ fetch(API_URL)
       `<option value="">List Agent</option>` +
       [...agentSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // ҮХ Төрөл dropdown
-    const uhSet = new Set(ALL.map(x => (x.uhTorol || "").trim()).filter(Boolean));
-    uhEl.innerHTML =
-      `<option value="">ҮХ Төрөл (Бүгд)</option>` +
-      [...uhSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+    // ҮХ Төрөл dropdown (custom categories)
+    uhEl.innerHTML = `
+      <option value="">ҮХ Төрөл (Бүгд)</option>
+      <option value="cat_gazar">Газар</option>
+      <option value="cat_gazar_object">Газар + Обьект</option>
+      <option value="cat_zuslan">Зуслан</option>
+      <option value="cat_object">Обьект</option>
+    `;
 
-    // Slider ranges (capped)
-    const pMin = 0;
-    const pMax = PRICE_CAP;
-
-    const aMin = 0;
-    const aMax = AREA_CAP;
+    // Sliders init (capped)
+    const pMin = 0, pMax = PRICE_CAP;
+    const aMin = 0, aMax = AREA_CAP;
 
     const PAD = 1_000_000;
     const pMinSafe = (pMin === pMax) ? Math.max(0, pMin - PAD) : pMin;
@@ -898,7 +868,6 @@ fetch(API_URL)
     clusterToggle.checked = false;
     setLayerMode(false);
 
-    updateClearBtn();
     render();
   })
   .catch(err => {
