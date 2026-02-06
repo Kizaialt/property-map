@@ -3,16 +3,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>PROPERTY_INVENTORY</title>
+<title>MAP v1.3</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-
-<!-- noUiSlider -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css"/>
 
-<!-- Cyrillic-safe font (ө/ү) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -46,10 +43,7 @@
 }
 .linkBtn:hover{ background:#f9fafb; }
 .linkBtn:active{ transform: translateY(1px); }
-.linkBtn.disabled{
-  opacity:.45;
-  pointer-events:none;
-}
+.linkBtn.disabled{ opacity:.45; pointer-events:none; }
 
 .topRow{
   display:grid;
@@ -72,10 +66,8 @@ input, select, button, option, textarea{
   font-family: "Noto Sans", "Segoe UI", Arial, sans-serif !important;
 }
 *{ font-synthesis: none; }
-
 #map{height:100vh;width:100vw}
 
-/* Map style toggle */
 .mapToggle{
   position:fixed; left:14px; top:140px;
   width:44px; height:44px; border-radius:999px;
@@ -84,7 +76,6 @@ input, select, button, option, textarea{
   font-weight:950;
 }
 
-/* Panel */
 .panel{
   position:fixed; right:16px; top:110px; width:380px;
   background:#fff; border:1px solid var(--border);
@@ -118,10 +109,7 @@ input, select, button, option, textarea{
   cursor:pointer;
 }
 
-.rowInline{
-  display:flex; gap:10px; align-items:center;
-  margin-top:2px;
-}
+.rowInline{ display:flex; gap:10px; align-items:center; margin-top:2px; }
 .switchWrap{
   display:flex; gap:10px; align-items:center;
   font-weight:900; color:var(--text);
@@ -129,7 +117,6 @@ input, select, button, option, textarea{
 }
 .switchWrap input{ transform: scale(1.1); }
 
-/* Slider wrap */
 .sliderWrap{
   border:1px solid var(--border);
   border-radius:14px;
@@ -137,29 +124,13 @@ input, select, button, option, textarea{
   background:#fff;
   margin-bottom:12px;
 }
-.sliderLabel{
-  margin-top:10px;
-  font-size:13px;
-  color:var(--muted);
-  font-weight:900;
-}
+.sliderLabel{ margin-top:10px; font-size:13px; color:var(--muted); font-weight:900; }
 
-/* noUiSlider theme */
-.noUi-target{
-  border:none;
-  box-shadow:none;
-  background:#e5e7eb;
-  border-radius:999px;
-  height:10px;
-}
-.noUi-connect{
-  background:#111827;
-}
+.noUi-target{ border:none; box-shadow:none; background:#e5e7eb; border-radius:999px; height:10px; }
+.noUi-connect{ background:#111827; }
 .noUi-handle{
-  width:22px !important;
-  height:22px !important;
-  right:-11px !important;
-  top:-6px !important;
+  width:22px !important; height:22px !important;
+  right:-11px !important; top:-6px !important;
   border-radius:999px !important;
   border:2px solid #111827 !important;
   background:#fff !important;
@@ -167,46 +138,23 @@ input, select, button, option, textarea{
 }
 .noUi-handle:before, .noUi-handle:after{ display:none; }
 
-/* Mapon marker */
-.maponMarker{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  white-space:nowrap;
-  pointer-events:auto;
-}
-.maponPin{
-  width:22px;
-  height:22px;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
-  flex:0 0 auto;
-}
+.maponMarker{ display:flex; align-items:center; gap:8px; white-space:nowrap; pointer-events:auto; }
+.maponPin{ width:22px; height:22px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.25)); flex:0 0 auto; }
 .maponText, .maponSub{
-  font-weight:950;
-  font-size:12px;
-  line-height:1.15;
-  color:#111;
-  text-shadow:
-    0 1px 0 rgba(255,255,255,.95),
-    0 0 6px rgba(255,255,255,.75);
+  font-weight:950; font-size:12px; line-height:1.15; color:#111;
+  text-shadow: 0 1px 0 rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.75);
 }
 .maponSub{ margin-top:2px; }
 
-/* Popup */
 .popupTop{font-weight:950;font-size:14px}
 .popupChips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.chip{
-  padding:7px 10px; border-radius:12px;
-  font-size:12px; font-weight:950;
-  border:1px solid var(--border);
-}
+.chip{ padding:7px 10px; border-radius:12px; font-size:12px; font-weight:950; border:1px solid var(--border); }
 .chip.red{background:#fee2e2;border-color:#fecaca}
 .chip.green{background:#dcfce7;border-color:#bbf7d0}
 .chip.blue{background:#dbeafe;border-color:#bfdbfe}
 .chip.gray{background:#f3f4f6;border-color:#e5e7eb}
 .popupHint{font-size:12px;color:var(--muted);margin-top:10px}
 
-/* Drawer */
 .drawer{
   position:fixed; right:16px; top:110px; bottom:16px; width:440px;
   background:#fff; border:1px solid var(--border); border-radius:14px;
@@ -215,15 +163,9 @@ input, select, button, option, textarea{
 }
 .drawerHeader{
   padding:14px; border-bottom:1px solid var(--border);
-  display:flex; align-items:center; justify-content:space-between;
-  gap:10px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
 }
-.drawerTitle{
-  width:100%;
-  text-align:center;
-  font-weight:950;
-  font-size:16px;
-}
+.drawerTitle{ width:100%; text-align:center; font-weight:950; font-size:16px; }
 .drawerClose{
   border:none; background:transparent;
   font-size:18px; cursor:pointer;
@@ -232,8 +174,7 @@ input, select, button, option, textarea{
 .drawerClose:hover{ background:#f3f4f6; }
 
 .drawerBody{
-  padding:14px;
-  padding-bottom:60px;
+  padding:14px; padding-bottom:60px;
   overflow-y:auto;
   height:calc(100dvh - 110px - 16px - 60px);
   box-sizing:border-box;
@@ -243,29 +184,15 @@ input, select, button, option, textarea{
 .section{ font-weight:950; margin:18px 0 10px; }
 .sectionCenter{ text-align:center; }
 
-.stats{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:10px;
-}
-.stat{
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:10px;
-}
+.stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.stat{ border:1px solid var(--border); border-radius:12px; padding:10px; }
 .statLabel{ font-size:11px; color:var(--muted); font-weight:900; }
 .statValue{ font-size:13px; font-weight:950; margin-top:6px; }
 
 .rowBox{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:10px;
-  margin-top:10px;
-  font-weight:950;
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  border:1px solid var(--border); border-radius:12px;
+  padding:10px; margin-top:10px; font-weight:950;
 }
 .rowBox span{ white-space:nowrap; }
 .rowBox span:first-child{ white-space:normal; }
@@ -273,7 +200,6 @@ input, select, button, option, textarea{
 .rowBox span:last-child{ margin-left:auto; }
 
 .valueNormal{ font-weight:600; color:var(--text); }
-a.cleanLink{ text-decoration:none; font-weight:950; }
 
 .checks{ display:flex; gap:18px; margin-top:10px; }
 .box{
@@ -281,11 +207,7 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
   border:1px solid #cbd5e1; border-radius:4px;
   display:inline-flex; align-items:center; justify-content:center;
 }
-.checked{
-  background:#111827; color:#fff;
-  border-color:#111827;
-  font-size:12px;
-}
+.checked{ background:#111827; color:#fff; border-color:#111827; font-size:12px; }
 
 @media (max-width: 900px){
   .panel{width:92vw; right:4vw; top:90px;}
@@ -321,7 +243,7 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
 
     <input class="input" id="nershilSearch" placeholder="Нэршилээр хайх (agartha, central tower г.м)"/>
 
-    <!-- Row 2: Төрөл + Дүүрэг (DROPDOWN NOW) -->
+    <!-- Row 2: Төрөл + Дүүрэг -->
     <div class="topRow">
       <select class="select" id="type">
         <option value="">Борлуулах болон Түрээслэх</option>
@@ -380,22 +302,19 @@ const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_k
 
 /* ========= MAP ========= */
 const map = L.map("map").setView([47.918,106.917], 11);
-
 const clean = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
 
 let satOn = false;
-const mapToggle = document.getElementById("mapToggle");
-mapToggle.onclick = () => {
+document.getElementById("mapToggle").onclick = () => {
   satOn = !satOn;
-  if (satOn){ map.removeLayer(clean); map.addLayer(sat); mapToggle.textContent = "🗺"; }
-  else { map.removeLayer(sat); map.addLayer(clean); mapToggle.textContent = "🛰"; }
+  if (satOn){ map.removeLayer(clean); map.addLayer(sat); document.getElementById("mapToggle").textContent = "🗺"; }
+  else { map.removeLayer(sat); map.addLayer(clean); document.getElementById("mapToggle").textContent = "🛰"; }
 };
 
 /* ========= UI ========= */
-const collapseBtn = document.getElementById("collapseBtn");
-const panelBody = document.getElementById("panelBody");
-collapseBtn.onclick = () => panelBody.classList.toggle("hidden");
+document.getElementById("collapseBtn").onclick = () =>
+  document.getElementById("panelBody").classList.toggle("hidden");
 
 const nershilSearch = document.getElementById("nershilSearch");
 const typeEl = document.getElementById("type");
@@ -437,10 +356,7 @@ function valueOrDash(v){
   return s ? esc(s) : "-";
 }
 function normText(s){
-  return String(s ?? "")
-    .toLowerCase()
-    .replace(/\s+/g," ")
-    .trim();
+  return String(s ?? "").toLowerCase().replace(/\s+/g," ").trim();
 }
 function fuzzyIncludes(haystack, query){
   const h = normText(haystack);
@@ -501,7 +417,6 @@ let m2Range = { min: -Infinity, max: Infinity };
 
 const PRICE_CAP = 2000 * 1_000_000;
 const PRICE_STEP = 50_000_000;
-
 const AREA_CAP = 300;
 const AREA_STEP = 10;
 
@@ -518,7 +433,6 @@ function makeMarker(item){
   const sub = [uh, info].filter(Boolean).join(" • ");
 
   const pinColor = torolPinColor(item.torol);
-
   const pinSvg = `
     <svg class="maponPin" viewBox="0 0 24 24" aria-hidden="true">
       <path fill="${pinColor}" d="M12 2c-3.314 0-6 2.686-6 6 0 4.5 6 14 6 14s6-9.5 6-14c0-3.314-2.686-6-6-6z"/>
@@ -537,12 +451,7 @@ function makeMarker(item){
   `;
 
   return L.marker([item.lat, item.lng], {
-    icon: L.divIcon({
-      className: "",
-      html,
-      iconAnchor: [11, 22],
-      popupAnchor: [0, -18]
-    })
+    icon: L.divIcon({ className:"", html, iconAnchor:[11,22], popupAnchor:[0,-18] })
   });
 }
 
@@ -649,42 +558,48 @@ let ALL = [];
 
 function matchesFilters(item){
   const agent = norm(agentEl.value);
-  const uh = String(uhEl.value || "").trim();
+  const uhSel = String(uhEl.value || "").trim();  // may be category or exact value
   const torol = norm(typeEl.value);
   const district = norm(districtEl.value);
   const pay = norm(payEl.value);
 
   if (agent && norm(item.listAgent) !== agent) return false;
+  if (district && norm(item.bairshil) !== district) return false;
 
-  // ҮХ Төрөл category filtering
-  if (uh) {
+  // Name fuzzy search
+  if (nershilSearch.value && !fuzzyIncludes(item.nershil, nershilSearch.value)) return false;
+
+  // ҮХ Төрөл filtering (your rules)
+  if (uhSel) {
     const itUH = norm(item.uhTorol);
 
-    if (uh === "cat_gazar") {
+    // Categories
+    if (uhSel === "cat_gazar") {
       if (itUH !== "газар") return false;
-    } else if (uh === "cat_zuslan") {
-      if (itUH !== "зуслан") return false;
-    } else if (uh === "cat_object") {
-      if (itUH !== "обьект" && itUH !== "объект") return false;
-    } else if (uh === "cat_gazar_object") {
+
+    } else if (uhSel === "cat_gazar_object") {
+      // "Газар + Обьект" includes these (and EXCLUDES "хашаа байшин")
       const allowed = new Set([
         "газар",
         "газартай обьект",
         "газартай объект",
         "зуслан",
         "обьект",
-        "объект",
-        "хашаа байшин"
+        "объект"
       ]);
       if (!allowed.has(itUH)) return false;
+
+    } else if (uhSel === "cat_zuslan") {
+      if (itUH !== "зуслан") return false;
+
+    } else if (uhSel === "cat_object") {
+      if (!(itUH === "обьект" || itUH === "объект")) return false;
+
+    } else {
+      // Exact options (Байр, Оффис, Хаус, Үйлчилгээ etc.)
+      if (itUH !== norm(uhSel)) return false;
     }
   }
-
-  // District dropdown exact match
-  if (district && norm(item.bairshil) !== district) return false;
-
-  // Name fuzzy search
-  if (nershilSearch.value && !fuzzyIncludes(item.nershil, nershilSearch.value)) return false;
 
   // Torol filter (include "хоёулаа" in both)
   const itTorol = norm(item.torol);
@@ -804,10 +719,8 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
 
   priceSliderEl.noUiSlider.on("update", updatePrice);
   m2SliderEl.noUiSlider.on("update", updateM2);
-
   priceSliderEl.noUiSlider.on("set", () => { updatePrice(); render(); });
   m2SliderEl.noUiSlider.on("set", () => { updateM2(); render(); });
-
   updatePrice(); updateM2();
 }
 
@@ -842,9 +755,16 @@ fetch(API_URL)
       `<option value="">List Agent</option>` +
       [...agentSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // ҮХ Төрөл dropdown (custom categories)
+    // ҮХ Төрөл dropdown (YOUR requested set + categories)
+    // NOTE: we do NOT include "Хашаа байшин" as selectable option.
     uhEl.innerHTML = `
       <option value="">ҮХ Төрөл (Бүгд)</option>
+
+      <option value="Байр">Байр</option>
+      <option value="Оффис">Оффис</option>
+      <option value="Хаус">Хаус</option>
+      <option value="Үйлчилгээ">Үйлчилгээ</option>
+
       <option value="cat_gazar">Газар</option>
       <option value="cat_gazar_object">Газар + Обьект</option>
       <option value="cat_zuslan">Зуслан</option>
