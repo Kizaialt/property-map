@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>PROPERTY_INVENTORY</title>
+<title>WEMAP</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -51,26 +51,23 @@
   pointer-events:none;
 }
 
+/* Two items in one row */
 .topRow{
   display:grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: 1fr 1fr;
   gap:12px;
   margin-bottom:12px;
 }
-
-.agentWrap .select{
-  margin-bottom:0;
-}
+.topRow .select,
+.topRow .input{ margin-bottom:0; }
 
 .searchWrap{
   position:relative;
 }
-
 .searchWrap .input{
   margin-bottom:0;
   padding-right:42px; /* space for X */
 }
-
 .clearBtn{
   position:absolute;
   right:10px;
@@ -88,7 +85,6 @@
   color:var(--muted);
   display:none; /* hidden until typing */
 }
-
 .clearBtn:hover{
   background:#f3f4f6;
   color:var(--text);
@@ -341,30 +337,34 @@ a.cleanLink{ text-decoration:none; font-weight:950; }
   </div>
 
   <div class="panelBody" id="panelBody">
+
+    <!-- Row 1: List Agent + ҮХ Төрөл -->
     <div class="topRow">
-  <div class="agentWrap">
-    <select class="select" id="agent">
-      <option value="">List Agent</option>
-    </select>
-  </div>
+      <select class="select" id="agent">
+        <option value="">List Agent</option>
+      </select>
 
-  <div class="searchWrap">
-    <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Дүүрэг"/>
-    <button class="clearBtn" id="clearBairshil" type="button" title="Clear">×</button>
-    <datalist id="bairshilList"></datalist>
-  </div>
-</div>
-
-    
+      <select class="select" id="uh">
+        <option value="">ҮХ Төрөл (Бүгд)</option>
+      </select>
+    </div>
 
     <input class="input" id="nershilSearch" placeholder="Нэршилээр хайх (agartha, central tower г.м)"/>
 
-    <!-- No "Хоёулаа" option -->
-    <select class="select" id="type">
-      <option value="">Борлуулах болон Түрээслэх</option>
-      <option value="борлуулах">зөвхөн Борлуулах</option>
-      <option value="түрээслэх">зөвхөн Түрээс</option>
-    </select>
+    <!-- Row 2: Төрөл + Дүүрэг (District on RIGHT) -->
+    <div class="topRow">
+      <select class="select" id="type">
+        <option value="">Борлуулах болон Түрээслэх</option>
+        <option value="борлуулах">зөвхөн Борлуулах</option>
+        <option value="түрээслэх">зөвхөн Түрээс</option>
+      </select>
+
+      <div class="searchWrap">
+        <input class="input" list="bairshilList" id="bairshilSearch" placeholder="Дүүрэг"/>
+        <button class="clearBtn" id="clearBairshil" type="button" title="Clear">×</button>
+        <datalist id="bairshilList"></datalist>
+      </div>
+    </div>
 
     <select class="select" id="pay">
       <option value="">Төлбөрийн нөхцөл (Бүгд)</option>
@@ -431,13 +431,15 @@ collapseBtn.onclick = () => panelBody.classList.toggle("hidden");
 
 const bairshilSearch = document.getElementById("bairshilSearch");
 const bairshilList = document.getElementById("bairshilList");
+const clearBairshilBtn = document.getElementById("clearBairshil");
+
 const nershilSearch = document.getElementById("nershilSearch");
 const typeEl = document.getElementById("type");
 const payEl = document.getElementById("pay");
 const clusterToggle = document.getElementById("clusterToggle");
-const agentEl = document.getElementById("agent");
-const clearBairshilBtn = document.getElementById("clearBairshil");
 
+const agentEl = document.getElementById("agent");
+const uhEl = document.getElementById("uh");
 
 const priceSliderEl = document.getElementById("priceSlider");
 const priceLabel = document.getElementById("priceLabel");
@@ -476,7 +478,6 @@ function normText(s){
     .replace(/\s+/g," ")
     .trim();
 }
-// token-based "fuzzy-ish"
 function fuzzyIncludes(haystack, query){
   const h = normText(haystack);
   const q = normText(query);
@@ -499,7 +500,7 @@ function torolPinColor(torol){
   const t = norm(torol);
   if (t === "борлуулах") return "#ef4444";
   if (t === "түрээслэх" || t === "түрээс") return "#22c55e";
-  return "#3b82f6"; // хоёулаа
+  return "#3b82f6";
 }
 function chipClassForTorol(torol){
   const t = norm(torol);
@@ -534,23 +535,24 @@ clusterToggle.onchange = () => { setLayerMode(clusterToggle.checked); render(); 
 /* ========= SLIDER STATE ========= */
 let priceRange = { min: -Infinity, max: Infinity };
 let m2Range = { min: -Infinity, max: Infinity };
-const PRICE_CAP = 2000 * 1_000_000; // 2,000M ₮
-const PRICE_STEP = 50_000_000;      // 10M step (adjust if you want)
-const AREA_CAP = 300; // 300 m²
-const AREA_STEP = 10;  // 10 m² increments
 
-  
+const PRICE_CAP = 2000 * 1_000_000;
+const PRICE_STEP = 50_000_000;
+
+const AREA_CAP = 300;     // keep your setting
+const AREA_STEP = 10;
+
 /* ========= MARKERS ========= */
 function makeMarker(item){
   const title = esc(item.nershil || "");
-  const uh = String(item.uhTorol ?? "").trim(); // "Байр" on pin label
+  const uh = String(item.uhTorol ?? "").trim();
 
   const m2 = item.m2 ? `${esc(item.m2)}м²` : "";
   const uruu = (item.uruu !== null && item.uruu !== undefined && String(item.uruu).trim() !== "")
     ? `${esc(item.uruu)} өрөө` : "";
 
   const info = [m2, uruu].filter(Boolean).join(" | ");
-  const sub = [uh, info].filter(Boolean).join(" • "); // Байр • 55м² | 2 өрөө
+  const sub = [uh, info].filter(Boolean).join(" • ");
 
   const pinColor = torolPinColor(item.torol);
 
@@ -672,19 +674,15 @@ function openDrawer(i){
     <div class="section sectionCenter">Дэлгэрэнгүй тайлбар</div>
     <div class="valueNormal" style="white-space:pre-line;">${valueOrDash(i.delgerenguiTailbar)}</div>
 
-<div class="linkBtns">
-  <a class="linkBtn ${matterportUrl ? "" : "disabled"}"
-     href="${matterportUrl ? esc(matterportUrl) : "#"}"
-     target="_blank" rel="noopener">
-     MATTERPORT
-  </a>
+    <div class="linkBtns">
+      <a class="linkBtn ${matterportUrl ? "" : "disabled"}"
+         href="${matterportUrl ? esc(matterportUrl) : "#"}"
+         target="_blank" rel="noopener">MATTERPORT</a>
 
-  <a class="linkBtn ${listUrl ? "" : "disabled"}"
-     href="${listUrl ? esc(listUrl) : "#"}"
-     target="_blank" rel="noopener">
-     LIST LINK
-  </a>
-</div>
+      <a class="linkBtn ${listUrl ? "" : "disabled"}"
+         href="${listUrl ? esc(listUrl) : "#"}"
+         target="_blank" rel="noopener">LIST LINK</a>
+    </div>
 
     <div class="rowBox" style="margin-top:16px;">
       <span>List Agent</span>
@@ -697,16 +695,18 @@ function openDrawer(i){
 let ALL = [];
 
 function matchesFilters(item){
+  const agent = norm(agentEl.value);
+  const uh = norm(uhEl.value);
+
   const bair = norm(bairshilSearch.value);
   const torol = norm(typeEl.value);
   const pay = norm(payEl.value);
-  const agent = norm(agentEl.value);
+
+  if (agent && norm(item.listAgent) !== agent) return false;
+  if (uh && norm(item.uhTorol) !== uh) return false;
 
   if (bair && norm(item.bairshil) !== bair) return false;
-  if (agent && norm(item.listAgent) !== agent) return false;
 
-
-  // Name fuzzy search
   if (nershilSearch.value && !fuzzyIncludes(item.nershil, nershilSearch.value)) return false;
 
   // Torol: show Borлуулах / Түрээс only, include "хоёулаа" in both
@@ -731,27 +731,25 @@ function matchesFilters(item){
     }
   }
 
-  // Price range (only if item has numeric price)
+  // Price range
   const p = toNumber(item.une);
   if (Number.isFinite(p)) {
-  // If user set max to cap, treat it as 2000+ (no upper bound)
-  if (priceRange.max >= PRICE_CAP) {
-    if (p < priceRange.min) return false;
-  } else {
-    if (p < priceRange.min || p > priceRange.max) return false;
+    if (priceRange.max >= PRICE_CAP) {
+      if (p < priceRange.min) return false;
+    } else {
+      if (p < priceRange.min || p > priceRange.max) return false;
+    }
   }
-}
 
-  // m2 range (only if item has numeric m2)
+  // m2 range
   const a = toNumber(item.m2);
-if (Number.isFinite(a)) {
-  // If max is at cap, treat as 1000+
-  if (m2Range.max >= AREA_CAP) {
-    if (a < m2Range.min) return false;
-  } else {
-    if (a < m2Range.min || a > m2Range.max) return false;
+  if (Number.isFinite(a)) {
+    if (m2Range.max >= AREA_CAP) {
+      if (a < m2Range.min) return false;
+    } else {
+      if (a < m2Range.min || a > m2Range.max) return false;
+    }
   }
-}
 
   return true;
 }
@@ -780,66 +778,43 @@ function render(){
   }
 }
 
-/* events */
+/* ========= EVENTS ========= */
 function updateClearBtn(){
   clearBairshilBtn.style.display = bairshilSearch.value.trim() ? "block" : "none";
 }
-
 clearBairshilBtn.onclick = () => {
   bairshilSearch.value = "";
   updateClearBtn();
   render();
 };
-
-bairshilSearch.addEventListener("input", () => {
-  updateClearBtn();
-  render();
-});
+bairshilSearch.addEventListener("input", () => { updateClearBtn(); render(); });
 
 agentEl.addEventListener("change", render);
+uhEl.addEventListener("change", render);
 nershilSearch.addEventListener("input", render);
 typeEl.addEventListener("change", render);
 payEl.addEventListener("change", render);
-  
-if (clearBairshilBtn){
-  clearBairshilBtn.onclick = () => {
-    bairshilSearch.value = "";
-    updateClearBtn();
-    render();
-  };
-}
-
-if (agentEl){
-  agentEl.addEventListener("change", render);
-}
 
 /* ========= SLIDERS INIT ========= */
 function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
-  // Destroy if re-init (safety)
   if (priceSliderEl.noUiSlider) priceSliderEl.noUiSlider.destroy();
   if (m2SliderEl.noUiSlider) m2SliderEl.noUiSlider.destroy();
 
   noUiSlider.create(priceSliderEl, {
     start: [pricesMin, pricesMax],
     connect: true,
-    range: { min: 0, max: PRICE_CAP },   // force 0..2000M
-    step: PRICE_STEP,                    // 10M step
-    format: {
-      to: v => Math.round(v),
-      from: v => Number(v)
-    }
+    range: { min: 0, max: PRICE_CAP },
+    step: PRICE_STEP,
+    format: { to: v => Math.round(v), from: v => Number(v) }
   });
 
   noUiSlider.create(m2SliderEl, {
-  start: [m2MinV, m2MaxV],
-  connect: true,
-  range: { min: 0, max: AREA_CAP },
-  step: AREA_STEP,
-  format: {
-    to: v => Math.round(v),
-    from: v => Number(v)
-  }
-});
+    start: [m2MinV, m2MaxV],
+    connect: true,
+    range: { min: 0, max: AREA_CAP },
+    step: AREA_STEP,
+    format: { to: v => Math.round(v), from: v => Number(v) }
+  });
 
   function updatePrice(){
     const v = priceSliderEl.noUiSlider.get().map(Number);
@@ -848,8 +823,8 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
       (priceRange.max >= PRICE_CAP)
       ? `${fmtMoneyShort(priceRange.min)} – 2000+ ₮`
       : `${fmtMoneyShort(priceRange.min)} – ${fmtMoneyShort(priceRange.max)}`;
-
   }
+
   function updateM2(){
     const v = m2SliderEl.noUiSlider.get().map(Number);
     m2Range.min = v[0]; m2Range.max = v[1];
@@ -857,19 +832,15 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
       (m2Range.max >= AREA_CAP)
       ? `${m2Range.min} – 300+ m²`
       : `${m2Range.min} – ${m2Range.max} m²`;
-
   }
 
-  priceSliderEl.noUiSlider.on("update", () => { updatePrice(); });
-  m2SliderEl.noUiSlider.on("update", () => { updateM2(); });
+  priceSliderEl.noUiSlider.on("update", updatePrice);
+  m2SliderEl.noUiSlider.on("update", updateM2);
 
-  // render only when user finishes sliding (better performance)
   priceSliderEl.noUiSlider.on("set", () => { updatePrice(); render(); });
   m2SliderEl.noUiSlider.on("set", () => { updateM2(); render(); });
 
-  // initial label + ranges
-  updatePrice();
-  updateM2();
+  updatePrice(); updateM2();
 }
 
 /* ========= LOAD ========= */
@@ -878,14 +849,13 @@ fetch(API_URL)
   .then(data => {
     const arr = Array.isArray(data) ? data : [];
 
-    // Robust lat/lng + numeric parsing
     ALL = arr.map(x => {
       const lat = toNumber(x.lat ?? x.Lat ?? x.latitude ?? x.LAT);
       const lng = toNumber(x.lng ?? x.long ?? x.Long ?? x.longitude ?? x.LNG ?? x.LON);
       return { ...x, lat, lng };
     }).filter(x => Number.isFinite(x.lat) && Number.isFinite(x.lng));
 
-    // Байршил datalist
+    // District datalist
     const bairSet = new Set(ALL.map(x => (x.bairshil || "").trim()).filter(Boolean));
     bairshilList.innerHTML = [...bairSet].sort().map(v => `<option value="${esc(v)}">`).join("");
 
@@ -895,50 +865,40 @@ fetch(API_URL)
     payEl.innerHTML =
       `<option value="">Төлбөрийн нөхцөл (Бүгд)</option>` +
       [...paySet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
-    
+
     // List Agent dropdown
     const agentSet = new Set(ALL.map(x => (x.listAgent || "").trim()).filter(Boolean));
     agentEl.innerHTML =
       `<option value="">List Agent</option>` +
       [...agentSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
+    // ҮХ Төрөл dropdown
+    const uhSet = new Set(ALL.map(x => (x.uhTorol || "").trim()).filter(Boolean));
+    uhEl.innerHTML =
+      `<option value="">ҮХ Төрөл (Бүгд)</option>` +
+      [...uhSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // Initialize slider ranges from data
-    const prices = ALL.map(x => toNumber(x.une)).filter(Number.isFinite);
-    const areas = ALL.map(x => toNumber(x.m2)).filter(Number.isFinite);
+    // Slider ranges (capped)
+    const pMin = 0;
+    const pMax = PRICE_CAP;
 
-    // Price slider should be usable, not destroyed by one expensive listing
-    const pMin = 0;          // start from 0 for usability
-    const pMax = PRICE_CAP;  // hard cap at 2000M
-
-    // Area slider should be usable
     const aMin = 0;
     const aMax = AREA_CAP;
 
     const PAD = 1_000_000;
-
-    const pMinSafe = (pMin === pMax)
-    ? Math.max(0, pMin - PAD)
-    : pMin;
-    
-    const pMaxSafe = (pMin === pMax)
-    ? Math.min(PRICE_CAP, pMax + PAD) // never exceed cap
-    : pMax;
+    const pMinSafe = (pMin === pMax) ? Math.max(0, pMin - PAD) : pMin;
+    const pMaxSafe = (pMin === pMax) ? Math.min(PRICE_CAP, pMax + PAD) : pMax;
 
     const AREA_PAD = 10;
-    const aMinSafe = (aMin === aMax)
-      ? Math.max(0, aMin - AREA_PAD)
-      : aMin;
-    const aMaxSafe = (aMin === aMax)
-      ? Math.min(AREA_CAP, aMax + AREA_PAD)
-      : aMax;
+    const aMinSafe = (aMin === aMax) ? Math.max(0, aMin - AREA_PAD) : aMin;
+    const aMaxSafe = (aMin === aMax) ? Math.min(AREA_CAP, aMax + AREA_PAD) : aMax;
 
     initNoUiSliders(pMinSafe, pMaxSafe, aMinSafe, aMaxSafe);
 
-    // default: pins only
     clusterToggle.checked = false;
     setLayerMode(false);
 
+    updateClearBtn();
     render();
   })
   .catch(err => {
