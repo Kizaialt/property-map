@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>MAP v1.3</title>
+<title>WePro Map 1.4</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -22,37 +22,6 @@
   --border:#e5e7eb;
   --shadow:0 10px 25px rgba(0,0,0,.12);
 }
-.linkBtns{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-  margin-top:12px;
-}
-.linkBtn{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:14px 12px;
-  border-radius:14px;
-  border:1px solid var(--border);
-  background:#fff;
-  box-shadow:none;
-  font-weight:950;
-  text-decoration:none;
-  color:var(--text);
-}
-.linkBtn:hover{ background:#f9fafb; }
-.linkBtn:active{ transform: translateY(1px); }
-.linkBtn.disabled{ opacity:.45; pointer-events:none; }
-
-.topRow{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:12px;
-  margin-bottom:12px;
-}
-.topRow .select,
-.topRow .input{ margin-bottom:0; }
 
 html, body{
   margin:0; height:100%;
@@ -66,16 +35,42 @@ input, select, button, option, textarea{
   font-family: "Noto Sans", "Segoe UI", Arial, sans-serif !important;
 }
 *{ font-synthesis: none; }
+
 #map{height:100vh;width:100vw}
 
+/* ✅ Map style toggle (desktop default) */
 .mapToggle{
-  position:fixed; left:14px; top:140px;
-  width:44px; height:44px; border-radius:999px;
-  border:1px solid var(--border); background:#fff;
-  box-shadow:var(--shadow); cursor:pointer; z-index:9999;
+  position:fixed;
+  left:14px;
+  top:140px;
+  width:44px;
+  height:44px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:#fff;
+  box-shadow:var(--shadow);
+  cursor:pointer;
+  z-index:12000; /* above panel + map */
   font-weight:950;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
 }
 
+/* ✅ Mobile: move to top-right and make smaller box-like */
+@media (max-width: 900px){
+  .mapToggle{
+    left:auto;
+    top:12px;
+    right:12px;
+    width:38px;
+    height:38px;
+    border-radius:12px; /* box-like */
+  }
+}
+
+/* Panel */
 .panel{
   position:fixed; right:16px; top:110px; width:380px;
   background:#fff; border:1px solid var(--border);
@@ -109,6 +104,15 @@ input, select, button, option, textarea{
   cursor:pointer;
 }
 
+.topRow{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  margin-bottom:12px;
+}
+.topRow .select,
+.topRow .input{ margin-bottom:0; }
+
 .rowInline{ display:flex; gap:10px; align-items:center; margin-top:2px; }
 .switchWrap{
   display:flex; gap:10px; align-items:center;
@@ -117,6 +121,7 @@ input, select, button, option, textarea{
 }
 .switchWrap input{ transform: scale(1.1); }
 
+/* Slider wrap */
 .sliderWrap{
   border:1px solid var(--border);
   border-radius:14px;
@@ -126,6 +131,7 @@ input, select, button, option, textarea{
 }
 .sliderLabel{ margin-top:10px; font-size:13px; color:var(--muted); font-weight:900; }
 
+/* noUiSlider */
 .noUi-target{ border:none; box-shadow:none; background:#e5e7eb; border-radius:999px; height:10px; }
 .noUi-connect{ background:#111827; }
 .noUi-handle{
@@ -138,6 +144,7 @@ input, select, button, option, textarea{
 }
 .noUi-handle:before, .noUi-handle:after{ display:none; }
 
+/* Mapon-style marker */
 .maponMarker{ display:flex; align-items:center; gap:8px; white-space:nowrap; pointer-events:auto; }
 .maponPin{ width:22px; height:22px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.25)); flex:0 0 auto; }
 .maponText, .maponSub{
@@ -146,6 +153,7 @@ input, select, button, option, textarea{
 }
 .maponSub{ margin-top:2px; }
 
+/* Popup */
 .popupTop{font-weight:950;font-size:14px}
 .popupChips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .chip{ padding:7px 10px; border-radius:12px; font-size:12px; font-weight:950; border:1px solid var(--border); }
@@ -155,6 +163,7 @@ input, select, button, option, textarea{
 .chip.gray{background:#f3f4f6;border-color:#e5e7eb}
 .popupHint{font-size:12px;color:var(--muted);margin-top:10px}
 
+/* Drawer */
 .drawer{
   position:fixed; right:16px; top:110px; bottom:16px; width:440px;
   background:#fff; border:1px solid var(--border); border-radius:14px;
@@ -209,10 +218,31 @@ input, select, button, option, textarea{
 }
 .checked{ background:#111827; color:#fff; border-color:#111827; font-size:12px; }
 
+.linkBtns{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+.linkBtn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px 12px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:#fff;
+  font-weight:950;
+  text-decoration:none;
+  color:var(--text);
+}
+.linkBtn:hover{ background:#f9fafb; }
+.linkBtn:active{ transform: translateY(1px); }
+.linkBtn.disabled{ opacity:.45; pointer-events:none; }
+
 @media (max-width: 900px){
   .panel{width:92vw; right:4vw; top:90px;}
   .drawer{width:92vw; right:4vw; top:90px;}
-  .mapToggle{top:100px;}
   .stats{grid-template-columns:repeat(2,1fr)}
 }
 </style>
@@ -220,7 +250,9 @@ input, select, button, option, textarea{
 
 <body>
 <div id="map"></div>
-<button class="mapToggle" id="mapToggle" title="Toggle map style">🛰</button>
+
+<!-- ✅ tooltip removed; phone-friendly -->
+<button class="mapToggle" id="mapToggle" aria-label="Toggle map style">🛰</button>
 
 <div class="panel">
   <div class="panelHeader">
@@ -230,7 +262,6 @@ input, select, button, option, textarea{
 
   <div class="panelBody" id="panelBody">
 
-    <!-- Row 1: List Agent + ҮХ Төрөл -->
     <div class="topRow">
       <select class="select" id="agent">
         <option value="">List Agent</option>
@@ -243,7 +274,6 @@ input, select, button, option, textarea{
 
     <input class="input" id="nershilSearch" placeholder="Нэршилээр хайх (agartha, central tower г.м)"/>
 
-    <!-- Row 2: Төрөл + Дүүрэг -->
     <div class="topRow">
       <select class="select" id="type">
         <option value="">Борлуулах болон Түрээслэх</option>
@@ -306,10 +336,11 @@ const clean = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
 
 let satOn = false;
-document.getElementById("mapToggle").onclick = () => {
+const mapToggle = document.getElementById("mapToggle");
+mapToggle.onclick = () => {
   satOn = !satOn;
-  if (satOn){ map.removeLayer(clean); map.addLayer(sat); document.getElementById("mapToggle").textContent = "🗺"; }
-  else { map.removeLayer(sat); map.addLayer(clean); document.getElementById("mapToggle").textContent = "🛰"; }
+  if (satOn){ map.removeLayer(clean); map.addLayer(sat); mapToggle.textContent = "🗺"; }
+  else { map.removeLayer(sat); map.addLayer(clean); mapToggle.textContent = "🛰"; }
 };
 
 /* ========= UI ========= */
@@ -558,7 +589,7 @@ let ALL = [];
 
 function matchesFilters(item){
   const agent = norm(agentEl.value);
-  const uhSel = String(uhEl.value || "").trim();  // may be category or exact value
+  const uhSel = String(uhEl.value || "").trim();
   const torol = norm(typeEl.value);
   const district = norm(districtEl.value);
   const pay = norm(payEl.value);
@@ -566,19 +597,16 @@ function matchesFilters(item){
   if (agent && norm(item.listAgent) !== agent) return false;
   if (district && norm(item.bairshil) !== district) return false;
 
-  // Name fuzzy search
   if (nershilSearch.value && !fuzzyIncludes(item.nershil, nershilSearch.value)) return false;
 
-  // ҮХ Төрөл filtering (your rules)
+  // ҮХ Төрөл rules
   if (uhSel) {
     const itUH = norm(item.uhTorol);
 
-    // Categories
     if (uhSel === "cat_gazar") {
       if (itUH !== "газар") return false;
 
     } else if (uhSel === "cat_gazar_object") {
-      // "Газар + Обьект" includes these (and EXCLUDES "хашаа байшин")
       const allowed = new Set([
         "газар",
         "газартай обьект",
@@ -596,12 +624,11 @@ function matchesFilters(item){
       if (!(itUH === "обьект" || itUH === "объект")) return false;
 
     } else {
-      // Exact options (Байр, Оффис, Хаус, Үйлчилгээ etc.)
       if (itUH !== norm(uhSel)) return false;
     }
   }
 
-  // Torol filter (include "хоёулаа" in both)
+  // Torol: include "хоёулаа" in both
   const itTorol = norm(item.torol);
   if (torol) {
     if (torol === "борлуулах") {
@@ -613,7 +640,7 @@ function matchesFilters(item){
     }
   }
 
-  // Payment: "Бэлэн мөнгө" matches "Бэлэн мөнгө болон Банк"
+  // Payment matching
   const itPay = norm(item.tolborNohtsol);
   if (pay) {
     if (pay === "бэлэн мөнгө") {
@@ -623,7 +650,6 @@ function matchesFilters(item){
     }
   }
 
-  // Price range
   const p = toNumber(item.une);
   if (Number.isFinite(p)) {
     if (priceRange.max >= PRICE_CAP) {
@@ -633,7 +659,6 @@ function matchesFilters(item){
     }
   }
 
-  // Area range
   const a = toNumber(item.m2);
   if (Number.isFinite(a)) {
     if (m2Range.max >= AREA_CAP) {
@@ -707,7 +732,6 @@ function initNoUiSliders(pricesMin, pricesMax, m2MinV, m2MaxV){
       ? `${fmtMoneyShort(priceRange.min)} – 2000+ ₮`
       : `${fmtMoneyShort(priceRange.min)} – ${fmtMoneyShort(priceRange.max)}`;
   }
-
   function updateM2(){
     const v = m2SliderEl.noUiSlider.get().map(Number);
     m2Range.min = v[0]; m2Range.max = v[1];
@@ -755,8 +779,7 @@ fetch(API_URL)
       `<option value="">List Agent</option>` +
       [...agentSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // ҮХ Төрөл dropdown (YOUR requested set + categories)
-    // NOTE: we do NOT include "Хашаа байшин" as selectable option.
+    // ҮХ Төрөл dropdown (includes your edited groups + other types)
     uhEl.innerHTML = `
       <option value="">ҮХ Төрөл (Бүгд)</option>
 
@@ -771,23 +794,10 @@ fetch(API_URL)
       <option value="cat_object">Обьект</option>
     `;
 
-    // Sliders init (capped)
-    const pMin = 0, pMax = PRICE_CAP;
-    const aMin = 0, aMax = AREA_CAP;
-
-    const PAD = 1_000_000;
-    const pMinSafe = (pMin === pMax) ? Math.max(0, pMin - PAD) : pMin;
-    const pMaxSafe = (pMin === pMax) ? Math.min(PRICE_CAP, pMax + PAD) : pMax;
-
-    const AREA_PAD = 10;
-    const aMinSafe = (aMin === aMax) ? Math.max(0, aMin - AREA_PAD) : aMin;
-    const aMaxSafe = (aMin === aMax) ? Math.min(AREA_CAP, aMax + AREA_PAD) : aMax;
-
-    initNoUiSliders(pMinSafe, pMaxSafe, aMinSafe, aMaxSafe);
+    initNoUiSliders(0, PRICE_CAP, 0, AREA_CAP);
 
     clusterToggle.checked = false;
     setLayerMode(false);
-
     render();
   })
   .catch(err => {
