@@ -325,7 +325,7 @@ a.cleanLink{ text-decoration:none; font-weight:950; color:var(--text); }
 
 <script>
 /* ========= CONFIG ========= */
-const API_URL = "PASTE_YOUR_API_URL_HERE"; // keep your working URL
+const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLigFetVxIZTHz4KamKi9nBjZqypxx-GDJpr9OmBve0P5iXEwZqM6_3BzyLd8d_CIwfSO1aQ2zHYJHUybkuvoKLpG1-iGkIOSTwL-3mooYJdw21CLcOiphR_M8v0j5MNLAGbsUoiRrNdLS606OpESLvybSVw_Q9uiBJhkayZPzu3EbRkf3p-M23A1czZBl4EWXB93wKsEtTvtQbzpM6uDk3c7ufUt-6k_cTc-MAyOauck02ByAfCLSXnfx5-20TzYyLsxSVmr0MhJvGlb4JxIAHpLjuaxA&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
 
 /* ========= MAP ========= */
 const map = L.map("map").setView([47.918,106.917], 11);
@@ -333,7 +333,8 @@ const clean = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
 
 let satOn = false;
-document.getElementById("mapToggle").onclick = () => {
+const mapToggle = document.getElementById("mapToggle");
+mapToggle.onclick = () => {
   satOn = !satOn;
   if (satOn){ map.removeLayer(clean); map.addLayer(sat); mapToggle.textContent = "🗺"; }
   else { map.removeLayer(sat); map.addLayer(clean); mapToggle.textContent = "🛰"; }
@@ -493,7 +494,7 @@ function popupHTML(i){
   `;
 }
 
-/* ✅ GOOGLE MAPS directions button is HERE */
+/* ========= DRAWER (✅ has Google directions button) ========= */
 function openDrawer(i){
   drawer.style.display = "block";
   drawerTitle.textContent = i.nershil || "-";
@@ -598,7 +599,7 @@ function matchesFilters(item){
     if (uhSel === "cat_gazar") {
       if (itUH !== "газар") return false;
     } else if (uhSel === "cat_gazar_object") {
-      const allowed = new Set(["газар","газартай обьект","газартай объект","зуслан","обьект","объект"]);
+      const allowed = new Set(["газар","газартай обьект","газартай объект","зуслан","обьект","объект","хашаа байшин"]);
       if (!allowed.has(itUH)) return false;
     } else if (uhSel === "cat_zuslan") {
       if (itUH !== "зуслан") return false;
