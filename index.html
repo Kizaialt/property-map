@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>WePro Map 1.4</title>
+<title>PROPERTY_INVENTORY</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -38,7 +38,7 @@ input, select, button, option, textarea{
 
 #map{height:100vh;width:100vw}
 
-/* ✅ Map style toggle (desktop default) */
+/* Map style toggle */
 .mapToggle{
   position:fixed;
   left:14px;
@@ -50,15 +50,13 @@ input, select, button, option, textarea{
   background:#fff;
   box-shadow:var(--shadow);
   cursor:pointer;
-  z-index:12000; /* above panel + map */
+  z-index:12000;
   font-weight:950;
   display:flex;
   align-items:center;
   justify-content:center;
   padding:0;
 }
-
-/* ✅ Mobile: move to top-right and make smaller box-like */
 @media (max-width: 900px){
   .mapToggle{
     left:auto;
@@ -66,7 +64,7 @@ input, select, button, option, textarea{
     right:12px;
     width:38px;
     height:38px;
-    border-radius:12px; /* box-like */
+    border-radius:12px;
   }
 }
 
@@ -209,6 +207,7 @@ input, select, button, option, textarea{
 .rowBox span:last-child{ margin-left:auto; }
 
 .valueNormal{ font-weight:600; color:var(--text); }
+a.cleanLink{ text-decoration:none; font-weight:950; color:var(--text); }
 
 .checks{ display:flex; gap:18px; margin-top:10px; }
 .box{
@@ -250,8 +249,6 @@ input, select, button, option, textarea{
 
 <body>
 <div id="map"></div>
-
-<!-- ✅ tooltip removed; phone-friendly -->
 <button class="mapToggle" id="mapToggle" aria-label="Toggle map style">🛰</button>
 
 <div class="panel">
@@ -328,7 +325,7 @@ input, select, button, option, textarea{
 
 <script>
 /* ========= CONFIG ========= */
-const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLigFetVxIZTHz4KamKi9nBjZqypxx-GDJpr9OmBve0P5iXEwZqM6_3BzyLd8d_CIwfSO1aQ2zHYJHUybkuvoKLpG1-iGkIOSTwL-3mooYJdw21CLcOiphR_M8v0j5MNLAGbsUoiRrNdLS606OpESLvybSVw_Q9uiBJhkayZPzu3EbRkf3p-M23A1czZBl4EWXB93wKsEtTvtQbzpM6uDk3c7ufUt-6k_cTc-MAyOauck02ByAfCLSXnfx5-20TzYyLsxSVmr0MhJvGlb4JxIAHpLjuaxA&lib=MWmJCaLoe2GY5RYMSwbuSdreUnuxCpyAE";
+const API_URL = "PASTE_YOUR_API_URL_HERE"; // keep your working URL
 
 /* ========= MAP ========= */
 const map = L.map("map").setView([47.918,106.917], 11);
@@ -336,8 +333,7 @@ const clean = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 });
 
 let satOn = false;
-const mapToggle = document.getElementById("mapToggle");
-mapToggle.onclick = () => {
+document.getElementById("mapToggle").onclick = () => {
   satOn = !satOn;
   if (satOn){ map.removeLayer(clean); map.addLayer(sat); mapToggle.textContent = "🗺"; }
   else { map.removeLayer(sat); map.addLayer(clean); mapToggle.textContent = "🛰"; }
@@ -429,23 +425,16 @@ const clusterLayer = L.markerClusterGroup({
   disableClusteringAtZoom: 15
 });
 let useCluster = false;
-
 function setLayerMode(clusterOn){
   useCluster = !!clusterOn;
-  if (useCluster){
-    map.removeLayer(pinsLayer);
-    map.addLayer(clusterLayer);
-  } else {
-    map.removeLayer(clusterLayer);
-    map.addLayer(pinsLayer);
-  }
+  if (useCluster){ map.removeLayer(pinsLayer); map.addLayer(clusterLayer); }
+  else { map.removeLayer(clusterLayer); map.addLayer(pinsLayer); }
 }
 clusterToggle.onchange = () => { setLayerMode(clusterToggle.checked); render(); };
 
 /* ========= SLIDER STATE ========= */
 let priceRange = { min: -Infinity, max: Infinity };
 let m2Range = { min: -Infinity, max: Infinity };
-
 const PRICE_CAP = 2000 * 1_000_000;
 const PRICE_STEP = 50_000_000;
 const AREA_CAP = 300;
@@ -455,11 +444,9 @@ const AREA_STEP = 10;
 function makeMarker(item){
   const title = esc(item.nershil || "");
   const uh = String(item.uhTorol ?? "").trim();
-
   const m2 = item.m2 ? `${esc(item.m2)}м²` : "";
   const uruu = (item.uruu !== null && item.uruu !== undefined && String(item.uruu).trim() !== "")
     ? `${esc(item.uruu)} өрөө` : "";
-
   const info = [m2, uruu].filter(Boolean).join(" | ");
   const sub = [uh, info].filter(Boolean).join(" • ");
 
@@ -470,7 +457,6 @@ function makeMarker(item){
       <circle cx="12" cy="8" r="2.6" fill="#ffffff"/>
     </svg>
   `;
-
   const html = `
     <div class="maponMarker">
       ${pinSvg}
@@ -480,7 +466,6 @@ function makeMarker(item){
       </div>
     </div>
   `;
-
   return L.marker([item.lat, item.lng], {
     icon: L.divIcon({ className:"", html, iconAnchor:[11,22], popupAnchor:[0,-18] })
   });
@@ -492,12 +477,10 @@ function popupHTML(i){
   const uruu = (i.uruu !== null && i.uruu !== undefined && String(i.uruu).trim() !== "")
     ? `${i.uruu} өрөө` : "";
   const mainInfo = [m2, uruu].filter(Boolean).join(" | ");
-
   const chip = (text, cls) => {
     const t = String(text ?? "").trim();
     return t ? `<span class="chip ${cls}">${esc(t)}</span>` : "";
   };
-
   return `
     <div>
       <div class="popupTop">${esc(i.nershil || "")}</div>
@@ -510,10 +493,14 @@ function popupHTML(i){
   `;
 }
 
-/* ========= DRAWER ========= */
+/* ✅ GOOGLE MAPS directions button is HERE */
 function openDrawer(i){
   drawer.style.display = "block";
   drawerTitle.textContent = i.nershil || "-";
+
+  const gmapsUrl = (Number.isFinite(i.lat) && Number.isFinite(i.lng))
+    ? `https://www.google.com/maps/dir/?api=1&destination=${i.lat},${i.lng}`
+    : "";
 
   const matterportUrl = String(i.matterport || "").trim();
   const listUrl = String(i.listLink || "").trim();
@@ -532,6 +519,13 @@ function openDrawer(i){
       <div class="stat"><div class="statLabel">Үнэ</div><div class="statValue">${money(i.une)}</div></div>
       <div class="stat"><div class="statLabel">M² үнэлгээ</div><div class="statValue">${valueOrDash(i.m2Uneleg)}</div></div>
     </div>
+
+    ${gmapsUrl ? `
+      <div class="rowBox">
+        <span>Google Maps</span>
+        <a class="cleanLink" href="${gmapsUrl}" target="_blank" rel="noopener">Чиглэл авах →</a>
+      </div>
+    ` : ""}
 
     <div class="rowBox"><span>Өрөө</span><span>${valueOrDash(i.uruu)}</span></div>
     <div class="rowBox"><span>Давхар / Байр Давхар</span><span>${valueOrDash(i.davhar)} / ${valueOrDash(i.bairDavhar)}</span></div>
@@ -557,7 +551,7 @@ function openDrawer(i){
 
     <div class="section">Онцлог</div>
     <div class="checks">
-      <div>${garageBox} Граж</div>
+      <div>${garageBox} Гараж</div>
       <div>${liftBox} Лифт</div>
     </div>
 
@@ -599,36 +593,22 @@ function matchesFilters(item){
 
   if (nershilSearch.value && !fuzzyIncludes(item.nershil, nershilSearch.value)) return false;
 
-  // ҮХ Төрөл rules
   if (uhSel) {
     const itUH = norm(item.uhTorol);
-
     if (uhSel === "cat_gazar") {
       if (itUH !== "газар") return false;
-
     } else if (uhSel === "cat_gazar_object") {
-      const allowed = new Set([
-        "газар",
-        "газартай обьект",
-        "газартай объект",
-        "зуслан",
-        "обьект",
-        "объект"
-      ]);
+      const allowed = new Set(["газар","газартай обьект","газартай объект","зуслан","обьект","объект"]);
       if (!allowed.has(itUH)) return false;
-
     } else if (uhSel === "cat_zuslan") {
       if (itUH !== "зуслан") return false;
-
     } else if (uhSel === "cat_object") {
       if (!(itUH === "обьект" || itUH === "объект")) return false;
-
     } else {
       if (itUH !== norm(uhSel)) return false;
     }
   }
 
-  // Torol: include "хоёулаа" in both
   const itTorol = norm(item.torol);
   if (torol) {
     if (torol === "борлуулах") {
@@ -640,7 +620,6 @@ function matchesFilters(item){
     }
   }
 
-  // Payment matching
   const itPay = norm(item.tolborNohtsol);
   if (pay) {
     if (pay === "бэлэн мөнгө") {
@@ -652,30 +631,21 @@ function matchesFilters(item){
 
   const p = toNumber(item.une);
   if (Number.isFinite(p)) {
-    if (priceRange.max >= PRICE_CAP) {
-      if (p < priceRange.min) return false;
-    } else {
-      if (p < priceRange.min || p > priceRange.max) return false;
-    }
+    if (priceRange.max >= PRICE_CAP) { if (p < priceRange.min) return false; }
+    else { if (p < priceRange.min || p > priceRange.max) return false; }
   }
 
   const a = toNumber(item.m2);
   if (Number.isFinite(a)) {
-    if (m2Range.max >= AREA_CAP) {
-      if (a < m2Range.min) return false;
-    } else {
-      if (a < m2Range.min || a > m2Range.max) return false;
-    }
+    if (m2Range.max >= AREA_CAP) { if (a < m2Range.min) return false; }
+    else { if (a < m2Range.min || a > m2Range.max) return false; }
   }
 
   return true;
 }
 
 function activeLayer(){ return useCluster ? clusterLayer : pinsLayer; }
-function clearActiveLayer(){
-  if (useCluster) clusterLayer.clearLayers();
-  else pinsLayer.clearLayers();
-}
+function clearActiveLayer(){ useCluster ? clusterLayer.clearLayers() : pinsLayer.clearLayers(); }
 
 function render(){
   clearActiveLayer();
@@ -695,7 +665,6 @@ function render(){
   }
 }
 
-/* ========= EVENTS ========= */
 agentEl.addEventListener("change", render);
 uhEl.addEventListener("change", render);
 districtEl.addEventListener("change", render);
@@ -753,41 +722,34 @@ fetch(API_URL)
   .then(r => r.json())
   .then(data => {
     const arr = Array.isArray(data) ? data : [];
-
     ALL = arr.map(x => {
       const lat = toNumber(x.lat ?? x.Lat ?? x.latitude ?? x.LAT);
       const lng = toNumber(x.lng ?? x.long ?? x.Long ?? x.longitude ?? x.LNG ?? x.LON);
       return { ...x, lat, lng };
     }).filter(x => Number.isFinite(x.lat) && Number.isFinite(x.lng));
 
-    // District dropdown
     const districtSet = new Set(ALL.map(x => (x.bairshil || "").trim()).filter(Boolean));
     districtEl.innerHTML =
       `<option value="">Дүүрэг (Бүгд)</option>` +
       [...districtSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // Payment dropdown
     const paySet = new Set(ALL.map(x => (x.tolborNohtsol || "").trim()).filter(Boolean));
     paySet.add("Бэлэн мөнгө");
     payEl.innerHTML =
       `<option value="">Төлбөрийн нөхцөл (Бүгд)</option>` +
       [...paySet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // List Agent dropdown
     const agentSet = new Set(ALL.map(x => (x.listAgent || "").trim()).filter(Boolean));
     agentEl.innerHTML =
       `<option value="">List Agent</option>` +
       [...agentSet].sort().map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
-    // ҮХ Төрөл dropdown (includes your edited groups + other types)
     uhEl.innerHTML = `
       <option value="">ҮХ Төрөл (Бүгд)</option>
-
       <option value="Байр">Байр</option>
       <option value="Оффис">Оффис</option>
       <option value="Хаус">Хаус</option>
       <option value="Үйлчилгээ">Үйлчилгээ</option>
-
       <option value="cat_gazar">Газар</option>
       <option value="cat_gazar_object">Газар + Обьект</option>
       <option value="cat_zuslan">Зуслан</option>
@@ -795,7 +757,6 @@ fetch(API_URL)
     `;
 
     initNoUiSliders(0, PRICE_CAP, 0, AREA_CAP);
-
     clusterToggle.checked = false;
     setLayerMode(false);
     render();
