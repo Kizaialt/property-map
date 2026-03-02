@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>4-Photo Collage + Center Text</title>
+
+  <style>
+    :root{
+      --bg: #0b0d12;
+      --border: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.9);
+      --muted: rgba(255,255,255,.65);
+
+      --canvasW: 1600;
+      --canvasH: 900;
+      --gap: 0px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 700px at 30% 10%, rgba(130,90,255,.25), transparent 50%),
+        radial-gradient(900px 600px at 70% 30%, rgba(0,180,255,.18), transparent 55%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .wrap{
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 16px;
+    }
+    @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    }
+
+    .title{
+      font-size: 14px;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 10px;
+    }
+
+    .stage{ width: 100%; display:grid; place-items:center; }
+
+    /* Preview canvas (DOM only) */
+    .canvas{
+      position: relative;
+      width: min(100%, 1000px);
+      aspect-ratio: calc(var(--canvasW) / var(--canvasH));
+      background: #000;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .grid{
+      position:absolute;
+      inset: 0;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: var(--gap);
+      background: #000;
+    }
+
+    .slot{
+      position: relative;
+      background: #0a0a0a;
+      overflow: hidden;
+    }
+
+    .slot img{
+      width: 100%;
+      height: 100%;
+      display:block;
+      object-fit: cover;
+      transform: translateZ(0);
+    }
+
+    .slot .placeholder{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      color: rgba(255,255,255,.55);
+      font-size: 14px;
+      padding: 12px;
+      text-align:center;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    }
+
+    /* Preview center box */
+    .centerBox{
+      position:absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 78%;
+      width: fit-content;
+      background: rgba(255,255,255,.95);
+      color: #111111;
+      border-radius: 35px;
+      padding: 5px 5px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.35);
+      border: 1px solid rgba(0,0,0,.08);
+      text-align: center;
+      white-space: pre-wrap;
+      font-size: 15px;
+      font-weight: 1000;
+      line-height: 1.2;
+      pointer-events: none;
+    }
+
+    .controls{ display:flex; flex-direction: column; gap: 12px; }
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .field{
+      background: rgba(0,0,0,.25);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .field label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], textarea, select, input[type="number"]{
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(10,12,18,.55);
+      color: var(--text);
+      padding: 10px;
+      outline: none;
+    }
+    textarea{ min-height: 110px; resize: vertical; line-height: 1.35; }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      cursor:pointer;
+      user-select:none;
+      transition: .15s ease;
+      font-weight: 650;
+    }
+    .btn:hover{ background: rgba(255,255,255,.12); }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn.primary{
+      background: rgba(130,90,255,.28);
+      border-color: rgba(130,90,255,.45);
+    }
+    .btn.primary:hover{ background: rgba(130,90,255,.35); }
+
+    .uploads{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .uploadBtn{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(255,255,255,.18);
+      background: rgba(0,0,0,.18);
+    }
+
+    .uploadBtn span{ font-size: 13px; color: var(--muted); }
+    .uploadBtn input{ display:none; }
+
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      cursor:pointer;
+    }
+
+    .hr{ height:1px; background: rgba(255,255,255,.12); margin: 10px 0; }
+    .mini{ font-size: 12px; color: var(--muted); line-height: 1.4; }
+    code{ font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: rgba(255,255,255,.85); }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <p class="title">Preview</p>
+
+      <div class="stage">
+        <div id="previewCanvas" class="canvas" aria-label="Collage preview">
+          <div class="grid">
+            <div class="slot"><img id="img1" alt="" /><div class="placeholder" id="ph1">Image 1</div></div>
+            <div class="slot"><img id="img2" alt="" /><div class="placeholder" id="ph2">Image 2</div></div>
+            <div class="slot"><img id="img3" alt="" /><div class="placeholder" id="ph3">Image 3</div></div>
+            <div class="slot"><img id="img4" alt="" /><div class="placeholder" id="ph4">Image 4</div></div>
+          </div>
+
+          <div id="centerBox" class="centerBox"></div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn primary" id="downloadBtn">Download PNG</button>
+        <button class="btn" id="resetDefaultsBtn">Reset defaults</button>
+        <button class="btn" id="clearBtn">Clear all images</button>
+      </div>
+
+      <p class="mini" style="margin-top:10px;">
+        Export text now scales to match preview (yes, that was the missing piece).
+      </p>
+    </div>
+
+    <div class="card">
+      <p class="title">Controls</p>
+
+      <div class="controls">
+        <div class="field">
+          <label>Upload images (each slot has its own button)</label>
+          <div class="uploads">
+            <div class="uploadBtn"><span>Slot 1</span><label class="pill">Upload<input type="file" accept="image/*" id="up1" /></label></div>
+            <div class="uploadBtn"><span>Slot 2</span><label class="pill">Upload<input type="file" accept="image/*" id="up2" /></label></div>
+            <div class="uploadBtn"><span>Slot 3</span><label class="pill">Upload<input type="file" accept="image/*" id="up3" /></label></div>
+            <div class="uploadBtn"><span>Slot 4</span><label class="pill">Upload<input type="file" accept="image/*" id="up4" /></label></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Image fit</label>
+          <select id="fitMode">
+            <option value="cover" selected>Cover (fills slot)</option>
+            <option value="contain">Contain (no crop)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Center text</label>
+          <textarea id="textInput" spellcheck="false"></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Font size</label>
+            <input type="number" id="fontSize" min="10" max="80" value="15" />
+          </div>
+          <div class="field">
+            <label>Font weight</label>
+            <input type="number" id="fontWeight" min="200" max="1000" step="50" value="1000" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Text color</label>
+            <input type="text" id="textColor" value="#111111" />
+            <p class="mini" style="margin:6px 0 0;">Hex like <code>#111111</code></p>
+          </div>
+          <div class="field">
+            <label>Box color</label>
+            <input type="text" id="boxColor" value="rgba(255,255,255,0.95)" />
+            <p class="mini" style="margin:6px 0 0;">Hex or rgba()</p>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Box radius</label>
+            <input type="number" id="boxRadius" min="0" max="80" value="35" />
+          </div>
+          <div class="field">
+            <label>Box padding (V / H)</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+              <input type="number" id="padV" min="0" max="60" value="5" />
+              <input type="number" id="padH" min="0" max="80" value="5" />
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Canvas size (export resolution)</label>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <input type="number" id="cW" min="800" max="4000" value="1600" />
+            <input type="number" id="cH" min="600" max="4000" value="900" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  const previewCanvasEl = $("previewCanvas");
+  const centerBoxEl = $("centerBox");
+
+  const imgEls = [null, $("img1"), $("img2"), $("img3"), $("img4")];
+  const phEls  = [null, $("ph1"),  $("ph2"),  $("ph3"),  $("ph4")];
+
+  // Store raw image sources for export
+  const imgSrc = {1:"",2:"",3:"",4:""};
+
+  // Defaults (your screenshot)
+  const DEFAULTS = {
+    fitMode: "cover",
+    text: `СБД 11-р хороo, зүүн айл төвөөс ертөнцийн зүгээр зүүн талд
+байрлалтай Ариун очир хотхонд 52м.кв 2 өрөө байр худалдаана
+
+📲 📲 📲 : 8081-6404`,
+    fontSize: 15,
+    fontWeight: 1000,
+    textColor: "#111111",
+    boxColor: "rgba(255,255,255,0.95)",
+    boxRadius: 35,
+    padV: 5,
+    padH: 5,
+    cW: 1600,
+    cH: 900
+  };
+
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+  function applyPreviewBox(){
+    centerBoxEl.textContent = $("textInput").value;
+
+    centerBoxEl.style.fontSize = $("fontSize").value + "px";
+    centerBoxEl.style.fontWeight = $("fontWeight").value;
+
+    centerBoxEl.style.color = $("textColor").value;
+    centerBoxEl.style.background = $("boxColor").value;
+
+    centerBoxEl.style.borderRadius = $("boxRadius").value + "px";
+    centerBoxEl.style.padding = `${$("padV").value}px ${$("padH").value}px`;
+  }
+
+  function applyCanvasAspectVars(){
+    const w = clamp(parseInt($("cW").value || 1600, 10), 800, 4000);
+    const h = clamp(parseInt($("cH").value || 900, 10), 600, 4000);
+    document.documentElement.style.setProperty("--canvasW", w);
+    document.documentElement.style.setProperty("--canvasH", h);
+  }
+
+  function setFitMode(mode){
+    for (let i=1; i<=4; i++) imgEls[i].style.objectFit = mode;
+  }
+
+  function applyDefaults(){
+    $("fitMode").value = DEFAULTS.fitMode;
+    $("textInput").value = DEFAULTS.text;
+
+    $("fontSize").value = DEFAULTS.fontSize;
+    $("fontWeight").value = DEFAULTS.fontWeight;
+
+    $("textColor").value = DEFAULTS.textColor;
+    $("boxColor").value = DEFAULTS.boxColor;
+
+    $("boxRadius").value = DEFAULTS.boxRadius;
+    $("padV").value = DEFAULTS.padV;
+    $("padH").value = DEFAULTS.padH;
+
+    $("cW").value = DEFAULTS.cW;
+    $("cH").value = DEFAULTS.cH;
+
+    setFitMode(DEFAULTS.fitMode);
+    applyCanvasAspectVars();
+    applyPreviewBox();
+  }
+
+  async function fileToDataURL(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleUpload(slot, file){
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return alert("Not an image.");
+    const dataURL = await fileToDataURL(file);
+    imgSrc[slot] = dataURL;
+    imgEls[slot].src = dataURL;
+    phEls[slot].style.display = "none";
+  }
+
+  // --- Canvas export (reliable) ---
+
+  function parseRGBA(str){
+    str = (str || "").trim();
+    if (str.startsWith("#")){
+      const hex = str.slice(1);
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+      return {r,g,b,a:1};
+    }
+    const m = str.match(/rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)(?:\s*,\s*([0-9.]+))?\s*\)/i);
+    if (!m) return {r:255,g:255,b:255,a:1};
+    return {r:+m[1], g:+m[2], b:+m[3], a:(m[4]===undefined?1:+m[4])};
+  }
+
+  function roundedRectPath(ctx, x, y, w, h, r){
+    const rr = Math.max(0, Math.min(r, Math.min(w,h)/2));
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
+    ctx.closePath();
+  }
+
+  function drawImageFit(ctx, img, dx, dy, dw, dh, mode){
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return;
+
+    const scale = mode === "contain"
+      ? Math.min(dw/iw, dh/ih)
+      : Math.max(dw/iw, dh/ih);
+
+    const sw = dw / scale;
+    const sh = dh / scale;
+    const sx = (iw - sw) / 2;
+    const sy = (ih - sh) / 2;
+
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+  }
+
+  function wrapText(ctx, text, maxWidth){
+    const lines = [];
+    const paragraphs = (text || "").split("\n");
+    for (const p of paragraphs){
+      if (p.trim() === ""){
+        lines.push("");
+        continue;
+      }
+      const words = p.split(/\s+/);
+      let line = "";
+      for (const w of words){
+        const test = line ? line + " " + w : w;
+        if (ctx.measureText(test).width <= maxWidth){
+          line = test;
+        } else {
+          if (line) lines.push(line);
+          line = w;
+        }
+      }
+      if (line) lines.push(line);
+    }
+    return lines;
+  }
+
+  function loadImage(src){
+    return new Promise((resolve) => {
+      if (!src) return resolve(null);
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => resolve(null);
+      im.src = src;
+    });
+  }
+
+  async function exportPNG(){
+    const w = clamp(parseInt($("cW").value || 1600, 10), 800, 4000);
+    const h = clamp(parseInt($("cH").value || 900, 10), 600, 4000);
+    const fit = $("fitMode").value;
+
+    // SCALE UI to match PREVIEW appearance
+    const previewRect = previewCanvasEl.getBoundingClientRect();
+    const scaleUI = w / previewRect.width;
+
+    const baseFontSize = parseFloat($("fontSize").value || 15);
+    const basePadV = parseFloat($("padV").value || 5);
+    const basePadH = parseFloat($("padH").value || 5);
+    const baseRadius = parseFloat($("boxRadius").value || 35);
+
+    const fontSize = baseFontSize * scaleUI;
+    const padV = basePadV * scaleUI;
+    const padH = basePadH * scaleUI;
+    const radius = baseRadius * scaleUI;
+
+    const fontWeight = parseInt($("fontWeight").value || 1000, 10);
+    const textColor = $("textColor").value || "#111111";
+    const boxRGBA = parseRGBA($("boxColor").value || "rgba(255,255,255,0.95)");
+    const text = $("textInput").value || "";
+
+    const cnv = document.createElement("canvas");
+    cnv.width = w;
+    cnv.height = h;
+    const ctx = cnv.getContext("2d");
+
+    // Background
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0,0,w,h);
+
+    const halfW = w/2;
+    const halfH = h/2;
+
+    const [i1,i2,i3,i4] = await Promise.all([
+      loadImage(imgSrc[1]),
+      loadImage(imgSrc[2]),
+      loadImage(imgSrc[3]),
+      loadImage(imgSrc[4])
+    ]);
+
+    const slots = [
+      {im:i1, x:0,     y:0,     w:halfW, h:halfH},
+      {im:i2, x:halfW, y:0,     w:halfW, h:halfH},
+      {im:i3, x:0,     y:halfH, w:halfW, h:halfH},
+      {im:i4, x:halfW, y:halfH, w:halfW, h:halfH}
+    ];
+
+    for (const s of slots){
+      if (s.im){
+        drawImageFit(ctx, s.im, s.x, s.y, s.w, s.h, fit);
+      } else {
+        ctx.fillStyle = "#0a0a0a";
+        ctx.fillRect(s.x, s.y, s.w, s.h);
+      }
+    }
+
+    // Font setup (emoji fallback included)
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.font = `${fontWeight} ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji"`;
+
+    const maxBoxWidth = w * 0.78;
+    const wrapWidth = maxBoxWidth - (padH * 2);
+    const lines = wrapText(ctx, text, wrapWidth);
+
+    const lineH = fontSize * 1.2;
+    const textBlockH = lines.length * lineH;
+
+    let maxLineW = 0;
+    for (const ln of lines){
+      maxLineW = Math.max(maxLineW, ctx.measureText(ln).width);
+    }
+
+    const boxW = Math.min(maxBoxWidth, maxLineW + padH*2);
+    const boxH = textBlockH + padV*2;
+
+    const boxX = (w - boxW) / 2;
+    const boxY = (h - boxH) / 2;
+
+    // Shadow
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 40 * scaleUI;
+    ctx.shadowOffsetY = 18 * scaleUI;
+
+    roundedRectPath(ctx, boxX, boxY, boxW, boxH, radius);
+    ctx.fillStyle = `rgba(${boxRGBA.r},${boxRGBA.g},${boxRGBA.b},${boxRGBA.a})`;
+    ctx.fill();
+    ctx.restore();
+
+    // Border
+    ctx.save();
+    roundedRectPath(ctx, boxX, boxY, boxW, boxH, radius);
+    ctx.strokeStyle = "rgba(0,0,0,0.08)";
+    ctx.lineWidth = 1 * scaleUI;
+    ctx.stroke();
+    ctx.restore();
+
+    // Text
+    ctx.fillStyle = textColor;
+    let y = boxY + padV;
+    const centerX = w / 2;
+    for (const ln of lines){
+      ctx.fillText(ln, centerX, y);
+      y += lineH;
+    }
+
+    // Download
+    const a = document.createElement("a");
+    a.download = "collage.png";
+    a.href = cnv.toDataURL("image/png");
+    a.click();
+  }
+
+  // Wire events
+  for (let i=1; i<=4; i++){
+    $("up"+i).addEventListener("change", (e) => handleUpload(i, e.target.files?.[0]));
+  }
+
+  $("fitMode").addEventListener("change", (e) => setFitMode(e.target.value));
+
+  ["textInput","fontSize","fontWeight","textColor","boxColor","boxRadius","padV","padH"]
+    .forEach(id => $(id).addEventListener("input", applyPreviewBox));
+
+  ["cW","cH"].forEach(id => $(id).addEventListener("input", applyCanvasAspectVars));
+
+  $("resetDefaultsBtn").addEventListener("click", applyDefaults);
+
+  $("clearBtn").addEventListener("click", () => {
+    for (let i=1; i<=4; i++){
+      imgSrc[i] = "";
+      imgEls[i].removeAttribute("src");
+      phEls[i].style.display = "grid";
+      $("up"+i).value = "";
+    }
+  });
+
+  $("downloadBtn").addEventListener("click", exportPNG);
+
+  // Init
+  applyDefaults();
+</script>
+</body>
+</html>
