@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Listing Video Generator</title>
+  <style>
+    :root{
+      --bg:#0b0d12;
+      --panel:rgba(255,255,255,.04);
+      --border:rgba(255,255,255,.08);
+      --text:#e7e9ee;
+    }
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);}
+    header{padding:16px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.03);position:sticky;top:0;z-index:5}
+    h1{margin:0;font-size:16px;font-weight:900}
+    main{display:grid;grid-template-columns:480px 1fr;gap:16px;padding:16px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px}
+    .panel h2{margin:0 0 10px;font-size:13px;opacity:.9}
+    label{display:block;font-size:12px;opacity:.9;margin:10px 0 6px}
+    input,textarea,select,button{
+      width:100%;box-sizing:border-box;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      color:var(--text);border-radius:10px;padding:10px;outline:none
+    }
+    textarea{min-height:110px;resize:vertical;line-height:1.35}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    button{cursor:pointer;font-weight:900}
+    button.primary{background:#6d5efc;border-color:rgba(255,255,255,.18)}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .hint{font-size:12px;opacity:.75;line-height:1.4;margin-top:8px}
+    .divider{height:1px;background:var(--border);margin:12px 0}
+    .hide{display:none!important}
+
+    .list{max-height:220px;overflow:auto;border-top:1px solid var(--border);margin-top:12px;padding-top:10px}
+    .thumb{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+    .thumb img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.10)}
+    .thumb div{font-size:12px;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    .stage{background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.18);border-radius:14px;padding:14px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+    canvas{width:360px;height:auto;border-radius:12px;background:#111;border:1px solid rgba(255,255,255,.12)}
+    video{width:360px;height:auto;border-radius:12px;background:#111;border:1px solid rgba(255,255,255,.12)}
+    @media (max-width:980px){
+      main{grid-template-columns:1fr}
+      canvas,video{width:280px}
+    }
+  </style>
+</head>
+<body>
+<header><h1>Listing Video Generator (Reel + 4:3 + Dual)</h1></header>
+
+<main>
+  <section class="panel">
+    <h2>1) Upload photos</h2>
+    <input id="files" type="file" accept="image/*" multiple />
+    <div class="hint">Exports one video. Add music later in IG/TikTok.</div>
+
+    <div id="dualUpload" class="hide" style="margin-top:12px;">
+      <h2>Dual format: Upload drone clip or 2nd photo</h2>
+      <input id="secondMedia" type="file" accept="video/*,image/*" />
+      <div class="hint">Tip: use a short orbit clip. Audio will not export (by design).</div>
+    </div>
+
+    <h2 style="margin-top:16px;">2) Output</h2>
+    <div class="row">
+      <div>
+        <label>Format</label>
+        <select id="format">
+          <option value="reel" selected>Reel 9:16 (1080×1920)</option>
+          <option value="reel_dual">Reel 9:16 (Two media: photo + clip)</option>
+          <option value="classic">Classic 4:3 (1080×810)</option>
+        </select>
+      </div>
+      <div>
+        <label>FPS</label>
+        <input id="fps" type="number" min="10" max="60" value="30" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Seconds per photo</label>
+        <input id="seconds" type="number" min="1" max="10" value="2" />
+      </div>
+      <div>
+        <label>Blur</label>
+        <input id="blur" type="range" min="0" max="40" value="18" />
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2>3) Content</h2>
+    <div class="row">
+      <div>
+        <label>Status (pill)</label>
+        <select id="status">
+          <option value="Түрээс" selected>Түрээс</option>
+          <option value="Борлуулах">Борлуулах</option>
+          <option value="Зарсан">Зарсан</option>
+        </select>
+      </div>
+      <div>
+        <label>Status color</label>
+        <input id="statusColor" type="color" value="#2bd576" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Phone</label>
+        <input id="phone" value="8081-6404" />
+      </div>
+      <div>
+        <label>Price</label>
+        <input id="price" value="Нөхцөл 3+1 · 1,900,000₮" />
+      </div>
+    </div>
+
+    <div class="hint">Text supports **bold**, _italic_, **_both_**.</div>
+    <textarea id="mainText">Шунхир 245-р байранд **47.05м.кв** байр
+- 11/16 давхарт
+- Баруун талруу харсан харуутай
+- Өмнө нь айл амьдарч байгаагүй _шинэ_ байр</textarea>
+
+    <div class="row">
+      <div>
+        <label>Text size</label>
+        <input id="textSize" type="range" min="20" max="48" value="30" />
+      </div>
+      <div>
+        <label>Text Y offset</label>
+        <input id="textOffset" type="range" min="-400" max="400" value="0" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Show long text</label>
+        <select id="showText">
+          <option value="yes" selected>Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div>
+        <label>Photo motion</label>
+        <select id="motion">
+          <option value="none">None</option>
+          <option value="photo" selected>Photo only</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Zoom strength</label>
+    <input id="zoom" type="range" min="0" max="10" value="4" />
+
+    <div class="divider"></div>
+
+    <!-- REEL CONTROLS -->
+    <div id="reelControls">
+      <h2>4) Reel options</h2>
+      <div class="hint">Reel formats keep chips in the textbox (not on the photo).</div>
+
+      <div class="row">
+        <div>
+          <label>Textbox style (reel)</label>
+          <select id="reelTextStyle">
+            <option value="below" selected>Below photo</option>
+            <option value="overlay">Overlay (chips still inside overlay)</option>
+          </select>
+        </div>
+        <div>
+          <label>Chip layout (reel)</label>
+          <select id="reelChipLayout">
+            <option value="row" selected>Row</option>
+            <option value="stack">Stack</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Card radius</label>
+          <input id="reelRadius" type="range" min="10" max="80" value="46" />
+        </div>
+        <div>
+          <label>Card padding</label>
+          <input id="reelPad" type="range" min="20" max="80" value="42" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Dual: clip height scale</label>
+          <input id="dualClipScale" type="range" min="0.70" max="1.20" step="0.01" value="1.00" />
+        </div>
+        <div>
+          <label>Dual: gap between media</label>
+          <input id="dualGap" type="range" min="10" max="40" value="18" />
+        </div>
+      </div>
+    </div>
+
+    <!-- CLASSIC CONTROLS -->
+    <div id="classicControls" class="hide">
+      <h2>4) 4:3 options</h2>
+      <div class="hint">4:3: chips ON photo + clean textbox below (narrower than photo).</div>
+
+      <div class="row">
+        <div>
+          <label>Pill (photo)</label>
+          <select id="cPillPos">
+            <option value="tl" selected>Top-left</option>
+            <option value="tr">Top-right</option>
+          </select>
+        </div>
+        <div>
+          <label>Phone (photo)</label>
+          <select id="cPhonePos">
+            <option value="tr" selected>Top-right</option>
+            <option value="tl">Top-left</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Price (photo)</label>
+          <select id="cPricePos">
+            <option value="br" selected>Bottom-right</option>
+            <option value="bl">Bottom-left</option>
+          </select>
+        </div>
+        <div>
+          <label>Textbox side inset</label>
+          <input id="boxInset" type="range" min="20" max="120" value="64" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Photo height (smaller = more text space)</label>
+          <input id="photoH43" type="range" min="0.45" max="0.72" step="0.01" value="0.58" />
+        </div>
+        <div>
+          <label>Photo radius</label>
+          <input id="classicPhotoR" type="range" min="10" max="40" value="22" />
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2>5) Export</h2>
+    <div class="row">
+      <button id="btnPreview">Redraw</button>
+      <button id="btnVideo" class="primary">Generate Video</button>
+    </div>
+    <div class="hint" id="hint"></div>
+
+    <div class="list" id="list"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Preview</h2>
+    <div class="stage">
+      <div>
+        <div class="hint" style="margin:0 0 8px;">Canvas</div>
+        <canvas id="canvas"></canvas>
+      </div>
+      <div>
+        <div class="hint" style="margin:0 0 8px;">Video preview</div>
+        <video id="vid" controls muted playsinline></video>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Hidden video for dual clip rendering -->
+<video id="clipVideo" muted playsinline loop class="hide"></video>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  // DOM
+  const filesEl = $('files');
+  const listEl  = $('list');
+  const formatEl = $('format');
+
+  const dualUploadEl = $('dualUpload');
+  const secondMediaEl = $('secondMedia');
+  const clipVideoEl = $('clipVideo');
+
+  const fpsEl = $('fps');
+  const secondsEl = $('seconds');
+  const blurEl = $('blur');
+
+  const statusEl = $('status');
+  const statusColorEl = $('statusColor');
+  const phoneEl = $('phone');
+  const priceEl = $('price');
+
+  const mainTextEl = $('mainText');
+  const textSizeEl = $('textSize');
+  const textOffsetEl = $('textOffset');
+  const showTextEl = $('showText');
+
+  const motionEl = $('motion');
+  const zoomEl = $('zoom');
+
+  const reelControls = $('reelControls');
+  const classicControls = $('classicControls');
+
+  const reelTextStyleEl = $('reelTextStyle');
+  const reelChipLayoutEl = $('reelChipLayout');
+  const reelRadiusEl = $('reelRadius');
+  const reelPadEl = $('reelPad');
+  const dualClipScaleEl = $('dualClipScale');
+  const dualGapEl = $('dualGap');
+
+  const cPillPosEl = $('cPillPos');
+  const cPhonePosEl = $('cPhonePos');
+  const cPricePosEl = $('cPricePos');
+  const boxInsetEl = $('boxInset');
+  const photoH43El = $('photoH43');
+  const classicPhotoREl = $('classicPhotoR');
+
+  const btnPreview = $('btnPreview');
+  const btnVideo = $('btnVideo');
+  const hintEl = $('hint');
+  const vid = $('vid');
+
+  const canvas = $('canvas');
+  const ctx = canvas.getContext('2d');
+
+  let slides = [];
+  let currentIndex = 0;
+
+  // Dual second media
+  let second = { type: null, img: null, vid: null, url: null };
+
+  function hint(msg){ hintEl.textContent = msg || ""; }
+
+  function getSize(){
+    if(formatEl.value === 'classic') return { W: 1080, H: 810 };
+    return { W: 1080, H: 1920 };
+  }
+
+  function applyCanvasSize(){
+    const {W,H} = getSize();
+    canvas.width = W; canvas.height = H;
+  }
+
+  function toggleModeUI(){
+    const isClassic = formatEl.value === 'classic';
+    classicControls.classList.toggle('hide', !isClassic);
+    reelControls.classList.toggle('hide', isClassic);
+
+    const isDual = formatEl.value === 'reel_dual';
+    dualUploadEl.classList.toggle('hide', !isDual);
+  }
+
+  function fitRect(imgW, imgH, boxW, boxH, mode){
+    const imgAR = imgW / imgH;
+    const boxAR = boxW / boxH;
+    let w, h;
+    if(mode === 'cover'){
+      if(imgAR > boxAR){ h = boxH; w = h * imgAR; }
+      else { w = boxW; h = w / imgAR; }
+    } else {
+      if(imgAR > boxAR){ w = boxW; h = w / imgAR; }
+      else { h = boxH; w = h * imgAR; }
+    }
+    return { w, h, x:(boxW-w)/2, y:(boxH-h)/2 };
+  }
+
+  function drawRoundedRect(ctx, x, y, w, h, r){
+    r = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  function textShadow(){
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 6;
+  }
+  function clearShadow(){
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+
+  // Markup: **bold**, _italic_, **_both_**
+  function parseMarkupToRuns(line){
+    const runs = [];
+    let i = 0;
+    let bold = false, italic = false;
+    const starts = (pos, s) => line.slice(pos, pos+s.length) === s;
+
+    while(i < line.length){
+      if(starts(i, '**_') || starts(i, '_**')) { bold = !bold; italic = !italic; i += 3; continue; }
+      if(starts(i, '**')) { bold = !bold; i += 2; continue; }
+      if(starts(i, '_'))  { italic = !italic; i += 1; continue; }
+
+      let j = i;
+      while(j < line.length){
+        if(starts(j, '**_') || starts(j, '_**') || starts(j, '**') || starts(j, '_')) break;
+        j++;
+      }
+      const chunk = line.slice(i, j);
+      if(chunk) runs.push({ text: chunk, bold, italic });
+      i = j;
+    }
+    return runs;
+  }
+
+  function setFont(sizePx, bold, italic){
+    const weight = bold ? 800 : 600;
+    const style = italic ? 'italic' : 'normal';
+    ctx.font = `${style} ${weight} ${sizePx}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+  }
+
+  function measureRuns(runs, sizePx){
+    let w = 0;
+    for(const r of runs){
+      setFont(sizePx, r.bold, r.italic);
+      w += ctx.measureText(r.text).width;
+    }
+    return w;
+  }
+
+  function drawRuns(runs, x, y, sizePx){
+    let cursor = x;
+    for(const r of runs){
+      setFont(sizePx, r.bold, r.italic);
+      ctx.fillText(r.text, cursor, y);
+      cursor += ctx.measureText(r.text).width;
+    }
+  }
+
+  function wrapMarkupText(text, maxWidth, sizePx){
+    const rawLines = (text || "").split('\n');
+    const out = [];
+    for(const raw of rawLines){
+      if(raw.trim() === ""){
+        out.push([{text:"", bold:false, italic:false}]);
+        continue;
+      }
+      const words = raw.split(/\s+/);
+      let cur = "";
+      const pushCur = () => { if(cur !== "") { out.push(parseMarkupToRuns(cur)); cur = ""; } };
+      for(const w of words){
+        const test = cur ? (cur + " " + w) : w;
+        const runs = parseMarkupToRuns(test);
+        if(measureRuns(runs, sizePx) > maxWidth && cur){
+          pushCur(); cur = w;
+        } else cur = test;
+      }
+      pushCur();
+    }
+    return out;
+  }
+
+  // ✅ Chips (with optional shadow)
+  function drawChip(text, x, y, anchor, bg, fg, fontPx, padX, padY, radius, withShadow=true){
+    if(!text) return;
+
+    ctx.font = `900 ${fontPx}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+    const tw = ctx.measureText(text).width;
+    const w = Math.ceil(tw + padX*2);
+    const h = Math.ceil(fontPx + padY*2);
+
+    let rx = x, ry = y;
+    if(anchor === 'tr'){ rx = Math.round(x - w); ry = Math.round(y); }
+    if(anchor === 'tl'){ rx = Math.round(x); ry = Math.round(y); }
+    if(anchor === 'br'){ rx = Math.round(x - w); ry = Math.round(y - h); }
+    if(anchor === 'bl'){ rx = Math.round(x); ry = Math.round(y - h); }
+
+    if(withShadow){
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      drawRoundedRect(ctx, rx+4, ry+6, w, h, radius);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = bg;
+    drawRoundedRect(ctx, rx, ry, w, h, radius);
+    ctx.fill();
+
+    ctx.fillStyle = fg;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillText(text, rx + padX, ry + h/2);
+  }
+
+  function drawBlurBG(img, W, H){
+    const blurPx = Number(blurEl.value || 18);
+    ctx.save();
+    ctx.filter = `blur(${blurPx}px)`;
+    const bgFit = fitRect(img.naturalWidth, img.naturalHeight, W, H, 'cover');
+    ctx.drawImage(img, bgFit.x, bgFit.y, bgFit.w, bgFit.h);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fillRect(0,0,W,H);
+  }
+
+  function drawCleanBox(x,y,w,h,r){
+    ctx.fillStyle = 'rgba(20,22,28,0.78)';
+    drawRoundedRect(ctx, x,y,w,h,r);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 2;
+    drawRoundedRect(ctx, x,y,w,h,r);
+    ctx.stroke();
+  }
+
+  function drawChipsInBox(boxX, boxY, boxW){
+    const status = (statusEl.value || "").trim();
+    const phone  = (phoneEl.value || "").trim();
+    const price  = (priceEl.value || "").trim();
+
+    const pad = 20;
+    const chipTopY = boxY + 16;
+
+    // Pill keeps shadow. Phone + price: NO shadow (fixes your bug).
+    if(reelChipLayoutEl.value === 'stack'){
+      drawChip(status, boxX + pad, chipTopY, 'tl',
+        statusColorEl.value || '#2bd576', 'rgba(0,0,0,0.72)', 36, 20, 12, 999, true);
+
+      drawChip("📞 " + phone, boxX + boxW - pad, chipTopY, 'tr',
+        'rgba(0,0,0,0.45)', 'rgba(255,255,255,0.92)', 34, 18, 12, 999, false);
+
+      drawChip(price, boxX + boxW - pad, chipTopY + 62, 'tr',
+        'rgba(0,0,0,0.55)', 'rgba(255,255,255,0.92)', 36, 20, 12, 18, false);
+
+    } else {
+      drawChip(status, boxX + pad, chipTopY, 'tl',
+        statusColorEl.value || '#2bd576', 'rgba(0,0,0,0.72)', 36, 20, 12, 999, true);
+
+      drawChip("📞 " + phone, boxX + boxW - pad, chipTopY, 'tr',
+        'rgba(0,0,0,0.45)', 'rgba(255,255,255,0.92)', 34, 18, 12, 999, false);
+
+      drawChip(price, boxX + boxW - pad, chipTopY + 62, 'tr',
+        'rgba(0,0,0,0.55)', 'rgba(255,255,255,0.92)', 36, 20, 12, 18, false);
+    }
+
+    // Return where text should start (below chips)
+    return chipTopY + 110;
+  }
+
+  // ===== REEL 9:16 (single) =====
+  function drawReel916(img, t){
+    const {W,H} = getSize();
+    drawBlurBG(img, W, H);
+
+    const cardPad = Number(reelPadEl.value || 42);
+    const radius  = Number(reelRadiusEl.value || 46);
+
+    const cardX = cardPad, cardY = cardPad;
+    const cardW = W - cardPad*2, cardH = H - cardPad*2;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, radius);
+    ctx.fill();
+
+    const innerPad = 22;
+    const photoX = cardX + innerPad;
+    const photoY = cardY + innerPad;
+    const photoW = cardW - innerPad*2;
+    const photoH = Math.round(photoW * 9 / 16);
+
+    const baseFit = fitRect(img.naturalWidth, img.naturalHeight, photoW, photoH, 'cover');
+    const useMotion = (motionEl.value === 'photo');
+    const strength  = Number(zoomEl.value || 4) / 100;
+
+    const z    = useMotion ? (1 + strength * t) : 1;
+    const panX = useMotion ? ((t - 0.5) * 22) : 0;
+    const panY = useMotion ? ((0.5 - t) * 10) : 0;
+
+    const drawW = baseFit.w * z;
+    const drawH = baseFit.h * z;
+    const dx = photoX + baseFit.x - (drawW - baseFit.w)/2 + panX;
+    const dy = photoY + baseFit.y - (drawH - baseFit.h)/2 + panY;
+
+    ctx.save();
+    drawRoundedRect(ctx, photoX, photoY, photoW, photoH, Math.max(18, radius - 12));
+    ctx.clip();
+    ctx.filter = 'none';
+    ctx.drawImage(img, dx, dy, drawW, drawH);
+    ctx.restore();
+
+    const size = Number(textSizeEl.value || 30);
+
+    // If no text, just chips bar
+    if(showTextEl.value !== 'yes'){
+      const miniY = photoY + photoH + 18;
+      const miniH = 92;
+      drawCleanBox(photoX, miniY, photoW, miniH, 20);
+
+      // Pill shadow ok, phone/price no shadow
+      drawChip((statusEl.value||"").trim(), photoX+18, miniY+18, 'tl',
+        statusColorEl.value || '#2bd576', 'rgba(0,0,0,0.72)', 34, 18, 12, 999, true);
+      drawChip("📞 " + (phoneEl.value||"").trim(), photoX+photoW-18, miniY+18, 'tr',
+        'rgba(0,0,0,0.45)', 'rgba(255,255,255,0.92)', 32, 16, 12, 999, false);
+      drawChip((priceEl.value||"").trim(), photoX+photoW-18, miniY+miniH-18, 'br',
+        'rgba(0,0,0,0.55)', 'rgba(255,255,255,0.92)', 34, 18, 12, 18, false);
+      return;
+    }
+
+    if(reelTextStyleEl.value === 'below'){
+      const boxX = photoX;
+      const boxY = photoY + photoH + 18;
+      const boxW = photoW;
+      const boxH = (cardY + cardH - innerPad) - boxY;
+
+      drawCleanBox(boxX, boxY, boxW, boxH, 28);
+      const textStart = drawChipsInBox(boxX, boxY, boxW);
+
+      const maxW = boxW - 56;
+      const lines = wrapMarkupText(mainTextEl.value || "", maxW, size);
+      const lineH = Math.round(size * 1.25);
+
+      let y = textStart + Number(textOffsetEl.value || 0);
+
+      textShadow();
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+      for(const runs of lines){
+        if(y > boxY + boxH - 18) break;
+        if(runs.length === 1 && runs[0].text === "") { y += lineH; continue; }
+        drawRuns(runs, boxX + 28, y, size);
+        y += lineH;
+      }
+      clearShadow();
+
+    } else {
+      // overlay
+      const overlayH = Math.round(photoH * 0.30);
+      const boxX = photoX, boxY = photoY + photoH - overlayH, boxW = photoW, boxH = overlayH;
+
+      ctx.save();
+      drawRoundedRect(ctx, photoX, photoY, photoW, photoH, Math.max(18, radius - 12));
+      ctx.clip();
+      ctx.fillStyle = 'rgba(20,22,28,0.62)';
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+      ctx.restore();
+
+      // chips inside overlay
+      const pad = 18;
+      drawChip((statusEl.value||"").trim(), boxX+pad, boxY+pad, 'tl',
+        statusColorEl.value || '#2bd576', 'rgba(0,0,0,0.72)', 32, 18, 10, 999, true);
+      drawChip("📞 " + (phoneEl.value||"").trim(), boxX+boxW-pad, boxY+pad, 'tr',
+        'rgba(0,0,0,0.45)', 'rgba(255,255,255,0.92)', 30, 16, 10, 999, false);
+      drawChip((priceEl.value||"").trim(), boxX+boxW-pad, boxY+boxH-pad, 'br',
+        'rgba(0,0,0,0.55)', 'rgba(255,255,255,0.92)', 32, 18, 10, 18, false);
+
+      const maxW = boxW - 44;
+      const lines = wrapMarkupText(mainTextEl.value || "", maxW, size);
+      const lineH = Math.round(size * 1.18);
+
+      let y = boxY + 44 + 70 + Number(textOffsetEl.value || 0);
+
+      textShadow();
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      for(const runs of lines){
+        if(y > boxY + boxH - 14) break;
+        if(runs.length === 1 && runs[0].text === "") { y += lineH; continue; }
+        drawRuns(runs, boxX + 22, y, size);
+        y += lineH;
+      }
+      clearShadow();
+    }
+  }
+
+  // ===== REEL 9:16 (DUAL media: photo + clip/photo) =====
+  function drawReelDual(img, t){
+    const {W,H} = getSize();
+    drawBlurBG(img, W, H);
+
+    const cardPad = Number(reelPadEl.value || 42);
+    const radius  = Number(reelRadiusEl.value || 46);
+    const innerPad = 22;
+
+    const cardX = cardPad, cardY = cardPad;
+    const cardW = W - cardPad*2, cardH = H - cardPad*2;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, radius);
+    ctx.fill();
+
+    // Layout
+    const x = cardX + innerPad;
+    const w = cardW - innerPad*2;
+
+    const gap = Number(dualGapEl.value || 18);
+    const topH = Math.round(w * 9 / 16); // 16:9
+    const clipScale = Number(dualClipScaleEl.value || 1.0);
+    const midH = Math.round(topH * clipScale);
+
+    const topY = cardY + innerPad;
+    const midY = topY + topH + gap;
+
+    // Text box uses remaining space
+    const boxY = midY + midH + gap;
+    const boxH = (cardY + cardH - innerPad) - boxY;
+
+    // Draw top photo
+    {
+      const baseFit = fitRect(img.naturalWidth, img.naturalHeight, w, topH, 'cover');
+      const useMotion = (motionEl.value === 'photo');
+      const strength  = Number(zoomEl.value || 4) / 100;
+      const z    = useMotion ? (1 + strength * t) : 1;
+      const panX = useMotion ? ((t - 0.5) * 22) : 0;
+      const panY = useMotion ? ((0.5 - t) * 10) : 0;
+
+      const drawW = baseFit.w * z;
+      const drawH = baseFit.h * z;
+      const dx = x + baseFit.x - (drawW - baseFit.w)/2 + panX;
+      const dy = topY + baseFit.y - (drawH - baseFit.h)/2 + panY;
+
+      ctx.save();
+      drawRoundedRect(ctx, x, topY, w, topH, Math.max(18, radius - 12));
+      ctx.clip();
+      ctx.filter = 'none';
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+      ctx.restore();
+    }
+
+    // Draw mid media (video frame or image), no chips on media
+    {
+      ctx.save();
+      drawRoundedRect(ctx, x, midY, w, midH, Math.max(18, radius - 12));
+      ctx.clip();
+      ctx.filter = 'none';
+
+      let drew = false;
+
+      if(second.type === 'video' && second.vid && second.vid.readyState >= 2){
+        // cover fit for video
+        const vw = second.vid.videoWidth || 1920;
+        const vh = second.vid.videoHeight || 1080;
+        const fit = fitRect(vw, vh, w, midH, 'cover');
+        ctx.drawImage(second.vid, x + fit.x, midY + fit.y, fit.w, fit.h);
+        drew = true;
+      } else if(second.type === 'image' && second.img){
+        const fit = fitRect(second.img.naturalWidth, second.img.naturalHeight, w, midH, 'cover');
+        ctx.drawImage(second.img, x + fit.x, midY + fit.y, fit.w, fit.h);
+        drew = true;
+      }
+
+      if(!drew){
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(x, midY, w, midH);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '800 32px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        ctx.fillText('Upload drone clip / 2nd photo', x + 28, midY + Math.round(midH/2));
+      }
+
+      ctx.restore();
+    }
+
+    // Text box (chips go here)
+    if(showTextEl.value !== 'yes' || boxH < 160){
+      // If too small, still place a small chip bar
+      const miniH = 96;
+      const miniY = Math.min(boxY, cardY + cardH - innerPad - miniH);
+      drawCleanBox(x, miniY, w, miniH, 22);
+
+      drawChip((statusEl.value||"").trim(), x+18, miniY+18, 'tl',
+        statusColorEl.value || '#2bd576', 'rgba(0,0,0,0.72)', 34, 18, 12, 999, true);
+      drawChip("📞 " + (phoneEl.value||"").trim(), x+w-18, miniY+18, 'tr',
+        'rgba(0,0,0,0.45)', 'rgba(255,255,255,0.92)', 32, 16, 12, 999, false);
+      drawChip((priceEl.value||"").trim(), x+w-18, miniY+miniH-18, 'br',
+        'rgba(0,0,0,0.55)', 'rgba(255,255,255,0.92)', 34, 18, 12, 18, false);
+      return;
+    }
+
+    drawCleanBox(x, boxY, w, boxH, 28);
+    const textStart = drawChipsInBox(x, boxY, w);
+
+    const size = Number(textSizeEl.value || 30);
+    const maxW = w - 56;
+    const lines = wrapMarkupText(mainTextEl.value || "", maxW, size);
+    const lineH = Math.round(size * 1.25);
+
+    let y = textStart + Number(textOffsetEl.value || 0);
+
+    textShadow();
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    for(const runs of lines){
+      if(y > boxY + boxH - 18) break;
+      if(runs.length === 1 && runs[0].text === "") { y += lineH; continue; }
+      drawRuns(runs, x + 28, y, size);
+      y += lineH;
+    }
+    clearShadow();
+  }
+
+  // ===== CLASSIC 4:3 =====
+  function drawClassic43(img, t){
+    const {W,H} = getSize();
+    drawBlurBG(img, W, H);
+
+    const pad = 24;
+
+    const photoScale = Number(photoH43El.value || 0.58);
+    const photoW = W - pad*2;
+    const photoX = pad;
+    const photoY = pad;
+    const photoH = Math.round(H * photoScale);
+
+    const photoR = Number(classicPhotoREl.value || 22);
+
+    // Photo cover + motion
+    const baseFit = fitRect(img.naturalWidth, img.naturalHeight, photoW, photoH, 'cover');
+    const useMotion = (motionEl.value === 'photo');
+    const strength  = Number(zoomEl.value || 4) / 100;
+
+    const z    = useMotion ? (1 + strength * t) : 1;
+    const panX = useMotion ? ((t - 0.5) * 18) : 0;
+    const panY = useMotion ? ((0.5 - t) * 8)  : 0;
+
+    const drawW = baseFit.w * z;
+    const drawH = baseFit.h * z;
+    const dx = photoX + baseFit.x - (drawW - baseFit.w)/2 + panX;
+    const dy = photoY + baseFit.y - (drawH - baseFit.h)/2 + panY;
+
+    ctx.save();
+    drawRoundedRect(ctx, photoX, photoY, photoW, photoH, photoR);
+    ctx.clip();
+    ctx.filter = 'none';
+    ctx.drawImage(img, dx, dy, drawW, drawH);
+    ctx.restore();
+
+    // Chips ON PHOTO (pill shadow ok, phone/price no shadow)
+    const status = (statusEl.value || "").trim();
+    const phone  = (phoneEl.value || "").trim();
+    const price  = (priceEl.value || "").trim();
+
+    const safe = 16;
+    const tl = {x: photoX + safe, y: photoY + safe, a:'tl'};
+    const tr = {x: photoX + photoW - safe, y: photoY + safe, a:'tr'};
+    const bl = {x: photoX + safe, y: photoY + photoH - safe, a:'bl'};
+    const br = {x: photoX + photoW - safe, y: photoY + photoH - safe, a:'br'};
+
+    const pickTop = (pos) => (pos === 'tl' ? tl : tr);
+    const pickBot = (pos) => (pos === 'bl' ? bl : br);
+
+    const pillPos = pickTop(cPillPosEl.value);
+    drawChip(status, pillPos.x, pillPos.y, pillPos.a,
+      statusColorEl.value || '#2bd576', 'rgba(0,0,0,0.72)',
+      30, 18, 10, 999, true
+    );
+
+    const phonePos = pickTop(cPhonePosEl.value);
+    drawChip("📞 " + phone, phonePos.x, phonePos.y, phonePos.a,
+      'rgba(0,0,0,0.45)', 'rgba(255,255,255,0.92)',
+      28, 16, 10, 999, false
+    );
+
+    const pricePos = pickBot(cPricePosEl.value);
+    drawChip(price, pricePos.x, pricePos.y, pricePos.a,
+      'rgba(0,0,0,0.55)', 'rgba(255,255,255,0.92)',
+      30, 18, 10, 18, false
+    );
+
+    // Clean textbox BELOW photo, narrower than photo
+    if(showTextEl.value !== 'yes') return;
+
+    const boxSideInset = Number(boxInsetEl.value || 64);
+    const boxX = photoX + boxSideInset;
+    const boxW = photoW - boxSideInset*2;
+    const gap = 18;
+    const boxY = photoY + photoH + gap;
+
+    const bottomPad = 24;
+    const boxH = (H - bottomPad) - boxY;
+
+    drawCleanBox(boxX, boxY, boxW, boxH, 22);
+
+    const size = Number(textSizeEl.value || 28);
+    const maxW = boxW - 48;
+    const lines = wrapMarkupText(mainTextEl.value || "", maxW, size);
+    const lineH = Math.round(size * 1.25);
+
+    let y = boxY + 46 + Number(textOffsetEl.value || 0);
+
+    textShadow();
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    for(const runs of lines){
+      if(y > boxY + boxH - 18) break;
+      if(runs.length === 1 && runs[0].text === "") { y += lineH; continue; }
+      drawRuns(runs, boxX + 24, y, size);
+      y += lineH;
+    }
+    clearShadow();
+  }
+
+  function drawFrame(img, t){
+    applyCanvasSize();
+    if(formatEl.value === 'classic') drawClassic43(img, t);
+    else if(formatEl.value === 'reel_dual') drawReelDual(img, t);
+    else drawReel916(img, t);
+  }
+
+  function redraw(){
+    toggleModeUI();
+    applyCanvasSize();
+    if(!slides.length){
+      const {W,H} = getSize();
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle = '#11131a';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '800 42px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      ctx.fillText('Upload listing photos', 60, 120);
+      return;
+    }
+    drawFrame(slides[currentIndex].img, 0);
+  }
+
+  function pickRecorderMime(){
+    const candidates = [
+      'video/mp4;codecs=h264',
+      'video/mp4',
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm'
+    ];
+    for(const m of candidates){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+    }
+    return '';
+  }
+
+  async function downloadBlob(blob, filename){
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  async function exportVideo(){
+    if(!slides.length){ hint("No photos."); return; }
+
+    const fps = Math.max(10, Math.min(60, Number(fpsEl.value || 30)));
+    const seconds = Math.max(1, Math.min(10, Number(secondsEl.value || 2)));
+    const framesPerSlide = Math.max(1, Math.round(fps * seconds));
+
+    const mime = pickRecorderMime();
+    if(!mime){ hint("MediaRecorder not supported. Use Chrome/Edge desktop."); return; }
+
+    // If dual format uses video, start it now (user gesture from button click)
+    if(formatEl.value === 'reel_dual' && second.type === 'video' && second.vid){
+      try{
+        second.vid.currentTime = 0;
+        await second.vid.play();
+      } catch(e){ /* ignore autoplay weirdness */ }
+    }
+
+    btnVideo.disabled = true; btnPreview.disabled = true;
+    hint(`Recording... (${mime})`);
+
+    applyCanvasSize();
+    const stream = canvas.captureStream(fps);
+    const chunks = [];
+    let rec;
+
+    try{
+      rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+    } catch(e){
+      hint("Recorder failed."); btnVideo.disabled = false; btnPreview.disabled = false; return;
+    }
+
+    rec.ondataavailable = (e) => { if(e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(res => rec.onstop = res);
+    rec.start(200);
+
+    for(let i=0;i<slides.length;i++){
+      hint(`Slide ${i+1}/${slides.length}...`);
+      for(let f=0; f<framesPerSlide; f++){
+        const t = (motionEl.value === 'photo') ? (f/framesPerSlide) : 0;
+        drawFrame(slides[i].img, t);
+        await new Promise(r => setTimeout(r, 1000 / fps));
+      }
+    }
+
+    rec.stop();
+    await stopped;
+
+    const type = mime.split(';')[0] || 'video/webm';
+    const blob = new Blob(chunks, { type });
+    const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+    const {W,H} = getSize();
+    const filename = `listing_${W}x${H}.${ext}`;
+
+    vid.src = URL.createObjectURL(blob);
+    await downloadBlob(blob, filename);
+
+    hint(`Downloaded: ${filename}`);
+    btnVideo.disabled = false; btnPreview.disabled = false;
+  }
+
+  async function fileToImage(file){
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.decoding = 'async';
+    img.loading = 'eager';
+    await new Promise((res, rej) => {
+      img.onload = () => res();
+      img.onerror = () => rej(new Error('Failed to load image'));
+      img.src = url;
+    });
+    return { img, url, name: file.name };
+  }
+
+  function renderList(){
+    listEl.innerHTML = "";
+    slides.forEach((s, i) => {
+      const row = document.createElement('div');
+      row.className = 'thumb';
+      const thumb = document.createElement('img');
+      thumb.src = s.url;
+      const meta = document.createElement('div');
+      meta.textContent = `${i+1}. ${s.name}`;
+      row.appendChild(thumb);
+      row.appendChild(meta);
+      row.onclick = () => { currentIndex = i; redraw(); };
+      listEl.appendChild(row);
+    });
+  }
+
+  // Load primary photos
+  filesEl.addEventListener('change', async () => {
+    const files = [...(filesEl.files || [])];
+    slides = [];
+    listEl.innerHTML = "";
+    vid.removeAttribute('src'); vid.load();
+
+    if(!files.length){ redraw(); return; }
+
+    hint("Loading...");
+    btnVideo.disabled = true; btnPreview.disabled = true;
+
+    for(const f of files){
+      try { slides.push(await fileToImage(f)); }
+      catch(e){ console.error(e); }
+    }
+
+    currentIndex = 0;
+    renderList();
+    redraw();
+
+    hint(`Loaded ${slides.length} image(s).`);
+    btnVideo.disabled = false; btnPreview.disabled = false;
+  });
+
+  // Load second media (dual)
+  secondMediaEl.addEventListener('change', async () => {
+    const f = secondMediaEl.files?.[0];
+    second = { type:null, img:null, vid:null, url:null };
+    if(!f){ redraw(); return; }
+
+    const url = URL.createObjectURL(f);
+    second.url = url;
+
+    if(f.type.startsWith('video/')){
+      second.type = 'video';
+      clipVideoEl.src = url;
+      clipVideoEl.loop = true;
+      clipVideoEl.muted = true;
+      clipVideoEl.playsInline = true;
+      second.vid = clipVideoEl;
+      try { await clipVideoEl.play(); } catch(e){ /* will play during export */ }
+    } else if(f.type.startsWith('image/')){
+      second.type = 'image';
+      const img = new Image();
+      await new Promise((res, rej)=>{ img.onload=res; img.onerror=rej; img.src=url; });
+      second.img = img;
+    }
+    redraw();
+  });
+
+  btnPreview.addEventListener('click', redraw);
+  btnVideo.addEventListener('click', exportVideo);
+
+  [
+    formatEl, fpsEl, secondsEl, blurEl,
+    statusEl, statusColorEl, phoneEl, priceEl,
+    mainTextEl, textSizeEl, textOffsetEl, showTextEl,
+    motionEl, zoomEl,
+    reelTextStyleEl, reelChipLayoutEl, reelRadiusEl, reelPadEl, dualClipScaleEl, dualGapEl,
+    cPillPosEl, cPhonePosEl, cPricePosEl, boxInsetEl, photoH43El, classicPhotoREl
+  ].forEach(el => { el.addEventListener('input', redraw); el.addEventListener('change', redraw); });
+
+  // init
+  toggleModeUI();
+  applyCanvasSize();
+  redraw();
+})();
+</script>
+</body>
+</html>
