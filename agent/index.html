@@ -248,6 +248,45 @@ a.cleanLink{ text-decoration:none; font-weight:950; color:var(--text); }
 </head>
 
 <body>
+  <div id="lockScreen" style="
+position:fixed;
+inset:0;
+background:white;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+z-index:999999;
+font-family:'Noto Sans', sans-serif;
+">
+
+  <div style="font-weight:900; font-size:22px; margin-bottom:20px;">
+    WePro Agent Access
+  </div>
+
+  <input id="pinInput"
+         type="password"
+         maxlength="4"
+         inputmode="numeric"
+         placeholder="••••"
+         style="
+         font-size:26px;
+         text-align:center;
+         letter-spacing:10px;
+         padding:12px;
+         width:140px;
+         border-radius:14px;
+         border:1px solid #e5e7eb;
+         font-weight:900;
+         outline:none;
+         ">
+
+  <div id="pinError" style="color:red; margin-top:10px; font-weight:700; display:none;">
+    Wrong PIN
+  </div>
+
+</div>
+
 <div id="map"></div>
 <button class="mapToggle" id="mapToggle" aria-label="Toggle map style">🛰</button>
 
@@ -785,6 +824,33 @@ fetch(API_URL)
     console.error(err);
     alert("API load failed. Check API_URL and Apps Script permissions (Anyone).");
   });
+  /* ========= SIMPLE PIN LOCK ========= */
+
+const CORRECT_PIN = "9376";   // change this to whatever 4 digits you want
+
+const lockScreen = document.getElementById("lockScreen");
+const pinInput = document.getElementById("pinInput");
+const pinError = document.getElementById("pinError");
+
+pinInput.focus();
+
+pinInput.addEventListener("input", () => {
+  if (pinInput.value.length === 4) {
+    if (pinInput.value === CORRECT_PIN) {
+      unlock();
+    } else {
+      pinError.style.display = "block";
+      pinInput.value = "";
+      setTimeout(() => pinError.style.display = "none", 1500);
+    }
+  }
+});
+
+function unlock() {
+  lockScreen.style.display = "none";
+  initApp();   // we’ll move your fetch here
+}
+
 </script>
 </body>
 </html>
