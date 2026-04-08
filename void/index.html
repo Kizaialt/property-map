@@ -134,26 +134,32 @@
         <h3>Upload photos</h3>
         <input id="photoInput" type="file" accept="image/*" multiple />
 
-        <h3 style="margin-top:18px;">Color controls</h3>
-        <p style="margin: 0 0 10px; color:#cbd5e1;">These adjust the base photo before the watermark is added.</p>
+        <h3 style="margin-top:18px;">Quick enhance</h3>
+        <p style="margin: 0 0 10px; color:#cbd5e1;">Simple controls for flat drone shots. The base photo is adjusted first, then the watermark is added.</p>
 
-        <label for="vibranceRange" style="display:block; margin-top:10px;">Vibrance: <span id="vibranceValue">20</span></label>
-        <input id="vibranceRange" type="range" min="-100" max="100" value="20" style="width:100%;" />
+        <label for="popRange" style="display:block; margin-top:10px;">Pop: <span id="popValue">20</span></label>
+        <div style="display:flex; gap:8px;">
+          <input id="popRange" type="range" min="0" max="60" step="10" value="20" style="flex:1;" />
+          <input id="popInput" type="number" min="0" max="60" step="1" value="20" style="width:70px;" />
+        </div>
 
-        <label for="saturationRange" style="display:block; margin-top:10px;">Saturation: <span id="saturationValue">12</span></label>
-        <input id="saturationRange" type="range" min="0" max="250" value="112" style="width:100%;" />
+        <label for="greenerRange" style="display:block; margin-top:10px;">Greener: <span id="greenerValue">10</span></label>
+        <div style="display:flex; gap:8px;">
+          <input id="greenerRange" type="range" min="0" max="40" step="10" value="10" style="flex:1;" />
+          <input id="greenerInput" type="number" min="0" max="40" step="1" value="10" style="width:70px;" />
+        </div>
 
-        <label for="contrastRange" style="display:block; margin-top:10px;">Contrast: <span id="contrastValue">8</span></label>
-        <input id="contrastRange" type="range" min="50" max="200" value="108" style="width:100%;" />
+        <label for="brightnessRange" style="display:block; margin-top:10px;">Brightness: <span id="brightnessValue">2</span></label>
+        <div style="display:flex; gap:8px;">
+          <input id="brightnessRange" type="range" min="85" max="120" step="10" value="100" style="flex:1;" />
+          <input id="brightnessInput" type="number" min="85" max="120" step="1" value="100" style="width:70px;" />
+        </div>
 
-        <label for="brightnessRange" style="display:block; margin-top:10px;">Brightness: <span id="brightnessValue">3</span></label>
-        <input id="brightnessRange" type="range" min="50" max="200" value="103" style="width:100%;" />
-
-        <label for="warmthRange" style="display:block; margin-top:10px;">Warmth: <span id="warmthValue">6</span></label>
-        <input id="warmthRange" type="range" min="-100" max="100" value="6" style="width:100%;" />
-
-        <label for="hueRange" style="display:block; margin-top:10px;">Hue shift: <span id="hueValue">0</span>°</label>
-        <input id="hueRange" type="range" min="-180" max="180" value="0" style="width:100%;" />
+        <label for="opacityRange" style="display:block; margin-top:10px;">Watermark opacity: <span id="opacityValue">100</span>%</label>
+        <div style="display:flex; gap:8px;">
+          <input id="opacityRange" type="range" min="0" max="100" step="10" value="100" style="flex:1;" />
+          <input id="opacityInput" type="number" min="0" max="100" step="1" value="100" style="width:70px;" />
+        </div>
 
         <button class="secondary" id="resetAdjustmentsBtn">Reset adjustments</button>
         <button class="secondary" id="downloadCurrentBtn" disabled>Download current image</button>
@@ -179,18 +185,18 @@
     const downloadCurrentBtn = document.getElementById('downloadCurrentBtn');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
     const clearBtn = document.getElementById('clearBtn');
-    const vibranceRange = document.getElementById('vibranceRange');
-    const saturationRange = document.getElementById('saturationRange');
-    const contrastRange = document.getElementById('contrastRange');
+    const popRange = document.getElementById('popRange');
+    const popInput = document.getElementById('popInput');
+    const greenerInput = document.getElementById('greenerInput');
+    const brightnessInput = document.getElementById('brightnessInput');
+    const opacityRange = document.getElementById('opacityRange');
+    const opacityInput = document.getElementById('opacityInput');
+    const greenerRange = document.getElementById('greenerRange');
     const brightnessRange = document.getElementById('brightnessRange');
-    const warmthRange = document.getElementById('warmthRange');
-    const hueRange = document.getElementById('hueRange');
-    const vibranceValue = document.getElementById('vibranceValue');
-    const saturationValue = document.getElementById('saturationValue');
-    const contrastValue = document.getElementById('contrastValue');
+    const popValue = document.getElementById('popValue');
+    const opacityValue = document.getElementById('opacityValue');
+    const greenerValue = document.getElementById('greenerValue');
     const brightnessValue = document.getElementById('brightnessValue');
-    const warmthValue = document.getElementById('warmthValue');
-    const hueValue = document.getElementById('hueValue');
     const resetAdjustmentsBtn = document.getElementById('resetAdjustmentsBtn');
     const thumbs = document.getElementById('thumbs');
     const canvas = document.getElementById('canvas');
@@ -240,48 +246,39 @@
     }
 
     function updateAdjustmentLabels() {
-      vibranceValue.textContent = String(Number(vibranceRange.value));
-      saturationValue.textContent = String(Number(saturationRange.value) - 100);
-      contrastValue.textContent = String(Number(contrastRange.value) - 100);
+      popValue.textContent = String(Number(popRange.value));
+      greenerValue.textContent = String(Number(greenerRange.value));
       brightnessValue.textContent = String(Number(brightnessRange.value) - 100);
-      warmthValue.textContent = String(Number(warmthRange.value));
-      hueValue.textContent = String(Number(hueRange.value));
+      opacityValue.textContent = String(Number(opacityRange.value));
     }
 
     function applyCanvasFilters(targetCtx, width, height, baseImg) {
       const brightness = Number(brightnessRange.value) / 100;
-      const contrast = Number(contrastRange.value) / 100;
-      const saturation = Number(saturationRange.value) / 100;
-      const hue = Number(hueRange.value);
+      const pop = Number(popRange.value);
+      const greener = Number(greenerRange.value);
+      const contrast = 1 + pop * 0.004;
+      const saturation = 1 + pop * 0.006;
 
       targetCtx.save();
-      targetCtx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) hue-rotate(${hue}deg)`;
+      targetCtx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
       targetCtx.drawImage(baseImg, 0, 0, width, height);
       targetCtx.restore();
 
       const imgData = targetCtx.getImageData(0, 0, width, height);
       const data = imgData.data;
-      const vibrance = Number(vibranceRange.value) / 100;
-      const warmth = Number(warmthRange.value);
 
       for (let i = 0; i < data.length; i += 4) {
         let r = data[i];
         let g = data[i + 1];
         let b = data[i + 2];
 
-        const max = Math.max(r, g, b);
-        const avg = (r + g + b) / 3;
-        const amt = (Math.abs(max - avg) * 2 / 255) * vibrance;
+        const greenBoost = greener * 0.9;
+        const redTrim = greener * 0.15;
+        const blueTrim = greener * 0.08;
 
-        if (amt !== 0) {
-          if (r !== max) r += (max - r) * amt;
-          if (g !== max) g += (max - g) * amt;
-          if (b !== max) b += (max - b) * amt;
-        }
-
-        r += warmth * 0.6;
-        g += warmth * 0.15;
-        b -= warmth * 0.5;
+        g += greenBoost;
+        r -= redTrim;
+        b -= blueTrim;
 
         data[i] = Math.max(0, Math.min(255, r));
         data[i + 1] = Math.max(0, Math.min(255, g));
@@ -322,7 +319,10 @@
       applyCanvasFilters(ctx, canvas.width, canvas.height, baseImg);
 
       if (watermarkImage) {
+        ctx.save();
+        ctx.globalAlpha = Number(opacityRange.value) / 100;
         ctx.drawImage(watermarkImage, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
       }
     }
 
@@ -341,7 +341,10 @@
 
       applyCanvasFilters(offCtx, off.width, off.height, photo.img);
       if (watermarkImage) {
+        offCtx.save();
+        offCtx.globalAlpha = Number(opacityRange.value) / 100;
         offCtx.drawImage(watermarkImage, 0, 0, off.width, off.height);
+        offCtx.restore();
       }
       return off;
     }
@@ -363,6 +366,20 @@
       downloadAllBtn.disabled = !hasPhotos;
     }
 
+    function sync(range, input) {
+      range.addEventListener('input', () => {
+        input.value = range.value;
+      });
+      input.addEventListener('input', () => {
+        range.value = input.value;
+      });
+    }
+
+    sync(popRange, popInput);
+    sync(greenerRange, greenerInput);
+    sync(brightnessRange, brightnessInput);
+    sync(opacityRange, opacityInput);
+
     photoInput.addEventListener('change', async (e) => {
       await handlePhotos([...e.target.files]);
     });
@@ -374,7 +391,7 @@
 
     downloadAllBtn.addEventListener('click', downloadAll);
 
-    [vibranceRange, saturationRange, contrastRange, brightnessRange, warmthRange, hueRange].forEach(control => {
+    [popRange, greenerRange, brightnessRange, opacityRange].forEach(control => {
       control.addEventListener('input', async () => {
         updateAdjustmentLabels();
         await renderCurrent();
@@ -382,15 +399,19 @@
     });
 
     resetAdjustmentsBtn.addEventListener('click', async () => {
-      vibranceRange.value = '20';
-      saturationRange.value = '112';
-      contrastRange.value = '108';
-      brightnessRange.value = '103';
-      warmthRange.value = '6';
-      hueRange.value = '0';
+      popRange.value = '20';
+      greenerRange.value = '10';
+      brightnessRange.value = '100';
+      opacityRange.value = '100';
+
+      popInput.value = '20';
+      greenerInput.value = '10';
+      brightnessInput.value = '100';
+      opacityInput.value = '100';
+
       updateAdjustmentLabels();
       await renderCurrent();
-    });
+    }););
 
     clearBtn.addEventListener('click', () => {
       photos = [];
