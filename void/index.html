@@ -166,8 +166,19 @@
         <button class="primary" id="downloadAllBtn" disabled>Download all images</button>
         <button class="danger" id="clearBtn">Clear all</button>
 
+        <label for="watermarkSelect" style="display:block; margin-top:14px;">Watermark file</label>
+        <select id="watermarkSelect" style="width:100%; padding:10px; border-radius:10px; border:1px solid #4b5563; background:#111827; color:#f9fafb; margin-top:8px;">
+          <option value="watermark.png">watermark.png</option>
+          <option value="watermark2.png">watermark2.png</option>
+          <option value="watermark3.png">watermark3.png</option>
+          <option value="watermark4.png">watermark4.png</option>
+          <option value="watermark5.png">watermark5.png</option>
+        </select>
+
+        <button class="primary" id="autoPresetBtn">Auto preset</button>
+
         <p>
-          The watermark file is loaded automatically from <code>watermark.png</code>. Make sure it has transparency.
+          Put up to 5 transparent watermark PNG files in the same folder as <code>index.html</code>. The selected watermark is loaded automatically.
         </p>
       </div>
 
@@ -183,6 +194,8 @@
   <script>
     const photoInput = document.getElementById('photoInput');
     const downloadCurrentBtn = document.getElementById('downloadCurrentBtn');
+    const watermarkSelect = document.getElementById('watermarkSelect');
+    const autoPresetBtn = document.getElementById('autoPresetBtn');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
     const clearBtn = document.getElementById('clearBtn');
     const popRange = document.getElementById('popRange');
@@ -205,6 +218,7 @@
     let photos = [];
     let currentIndex = 0;
     let watermarkImage = null;
+    let currentWatermarkFile = 'watermark.png';
 
     function readFileAsDataURL(file) {
       return new Promise((resolve, reject) => {
@@ -224,11 +238,14 @@
       });
     }
 
-    async function loadWatermark() {
+    async function loadWatermark(filename = currentWatermarkFile) {
+      currentWatermarkFile = filename;
       try {
-        watermarkImage = await loadImage('watermark.png');
+        watermarkImage = await loadImage(filename + '?v=' + Date.now());
+        await renderCurrent();
       } catch (err) {
-        alert('Could not load watermark.png. Put watermark.png in the same folder as index.html');
+        watermarkImage = null;
+        alert(`Could not load ${filename}. Put ${filename} in the same folder as index.html`);
       }
     }
 
@@ -286,6 +303,73 @@
       }
 
       targetCtx.putImageData(imgData, 0, 0);
+    }
+
+    function analyzeImageTone(baseImg) {
+      const sample = document.createElement('canvas');
+      const sampleCtx = sample.getContext('2d', { willReadFrequently: true });
+      const maxDim = 200;
+      const ratio = Math.min(maxDim / baseImg.width, maxDim / baseImg.height, 1);
+      sample.width = Math.max(1, Math.round(baseImg.width * ratio));
+      sample.height = Math.max(1, Math.round(baseImg.height * ratio));
+      sampleCtx.drawImage(baseImg, 0, 0, sample.width, sample.height);
+      const data = sampleCtx.getImageData(0, 0, sample.width, sample.height).data;
+
+      let totalLuma = 0;
+      let totalColorSpread = 0;
+      let greenishPixels = 0;
+      let count = 0;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        totalLuma += luma;
+        totalColorSpread += (max - min);
+        if (g > r && g > b) greenishPixels += 1;
+        count += 1;
+      }
+
+      return {
+        avgLuma: totalLuma / count,
+        avgSpread: totalColorSpread / count,
+        greenRatio: greenishPixels / count
+      };
+    }
+
+    async function runAutoPreset() {
+      if (!photos.length) return;
+      const baseImg = photos[currentIndex].img;
+      const stats = analyzeImageTone(baseImg);
+
+      let pop = 20;
+      let greener = 10;
+      let brightness = 100;
+
+      if (stats.avgSpread < 35) pop = 30;
+      else if (stats.avgSpread < 50) pop = 20;
+      else pop = 10;
+
+      if (stats.avgLuma < 95) brightness = 110;
+      else if (stats.avgLuma < 125) brightness = 100;
+      else brightness = 90;
+
+      if (stats.greenRatio < 0.22) greener = 20;
+      else if (stats.greenRatio < 0.32) greener = 10;
+      else greener = 0;
+
+      popRange.value = String(pop);
+      greenerRange.value = String(greener);
+      brightnessRange.value = String(brightness);
+      popInput.value = String(pop);
+      greenerInput.value = String(greener);
+      brightnessInput.value = String(brightness);
+
+      updateAdjustmentLabels();
+      await renderCurrent();
     }
 
     function renderThumbs() {
@@ -380,6 +464,12 @@
     sync(brightnessRange, brightnessInput);
     sync(opacityRange, opacityInput);
 
+    watermarkSelect.addEventListener('change', async () => {
+      await loadWatermark(watermarkSelect.value);
+    });
+
+    autoPresetBtn.addEventListener('click', runAutoPreset);
+
     photoInput.addEventListener('change', async (e) => {
       await handlePhotos([...e.target.files]);
     });
@@ -427,7 +517,7 @@
     canvas.width = 300;
     canvas.height = 150;
     updateAdjustmentLabels();
-    loadWatermark();
+    loadWatermark(currentWatermarkFile);
     updateButtons();
   </script>
 </body>
