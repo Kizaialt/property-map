@@ -36,14 +36,20 @@
       border-radius: 16px;
       padding: 18px;
     }
-    input[type="file"] {
+    input[type="file"],
+    input[type="number"],
+    select {
       width: 100%;
       padding: 12px;
-      border: 1px dashed #4b5563;
+      border: 1px solid #4b5563;
       border-radius: 12px;
       background: #111827;
       color: #f9fafb;
-      margin-top: 10px;
+      margin-top: 8px;
+    }
+    input[type="range"] {
+      width: 100%;
+      margin-top: 8px;
     }
     button {
       width: 100%;
@@ -55,18 +61,9 @@
       cursor: pointer;
       margin-top: 12px;
     }
-    .primary {
-      background: #22c55e;
-      color: #052e16;
-    }
-    .secondary {
-      background: #e5e7eb;
-      color: #111827;
-    }
-    .danger {
-      background: #7f1d1d;
-      color: #fecaca;
-    }
+    .primary { background: #22c55e; color: #052e16; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    .danger { background: #7f1d1d; color: #fecaca; }
     .canvas-box {
       min-height: 480px;
       display: flex;
@@ -96,9 +93,7 @@
       padding: 8px;
       cursor: pointer;
     }
-    .thumb.active {
-      outline: 2px solid #22c55e;
-    }
+    .thumb.active { outline: 2px solid #22c55e; }
     .thumb img {
       width: 100%;
       height: 100px;
@@ -110,6 +105,17 @@
     .thumb small {
       color: #cbd5e1;
       word-break: break-word;
+    }
+    .control-row {
+      display: grid;
+      grid-template-columns: 1fr 80px;
+      gap: 8px;
+      align-items: center;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #cbd5e1;
     }
     code {
       background: #111827;
@@ -125,8 +131,8 @@
   <div class="wrap">
     <h1>Simple Watermark Tool</h1>
     <p>
-      Upload your photos, and this page will place <code>watermark.png</code> on top of every image automatically.
-      Put both <code>index.html</code> and <code>watermark.png</code> in the same GitHub Pages folder.
+      Upload your photos, adjust them quickly, and this page will place the selected watermark PNG on top.
+      Put <code>index.html</code> and your watermark files in the same GitHub Pages folder.
     </p>
 
     <div class="grid">
@@ -134,40 +140,8 @@
         <h3>Upload photos</h3>
         <input id="photoInput" type="file" accept="image/*" multiple />
 
-        <h3 style="margin-top:18px;">Quick enhance</h3>
-        <p style="margin: 0 0 10px; color:#cbd5e1;">Simple controls for flat drone shots. The base photo is adjusted first, then the watermark is added.</p>
-
-        <label for="popRange" style="display:block; margin-top:10px;">Pop: <span id="popValue">20</span></label>
-        <div style="display:flex; gap:8px;">
-          <input id="popRange" type="range" min="0" max="60" step="10" value="20" style="flex:1;" />
-          <input id="popInput" type="number" min="0" max="60" step="1" value="20" style="width:70px;" />
-        </div>
-
-        <label for="greenerRange" style="display:block; margin-top:10px;">Greener: <span id="greenerValue">10</span></label>
-        <div style="display:flex; gap:8px;">
-          <input id="greenerRange" type="range" min="0" max="40" step="10" value="10" style="flex:1;" />
-          <input id="greenerInput" type="number" min="0" max="40" step="1" value="10" style="width:70px;" />
-        </div>
-
-        <label for="brightnessRange" style="display:block; margin-top:10px;">Brightness: <span id="brightnessValue">2</span></label>
-        <div style="display:flex; gap:8px;">
-          <input id="brightnessRange" type="range" min="85" max="120" step="10" value="100" style="flex:1;" />
-          <input id="brightnessInput" type="number" min="85" max="120" step="1" value="100" style="width:70px;" />
-        </div>
-
-        <label for="opacityRange" style="display:block; margin-top:10px;">Watermark opacity: <span id="opacityValue">100</span>%</label>
-        <div style="display:flex; gap:8px;">
-          <input id="opacityRange" type="range" min="0" max="100" step="10" value="100" style="flex:1;" />
-          <input id="opacityInput" type="number" min="0" max="100" step="1" value="100" style="width:70px;" />
-        </div>
-
-        <button class="secondary" id="resetAdjustmentsBtn">Reset adjustments</button>
-        <button class="secondary" id="downloadCurrentBtn" disabled>Download current image</button>
-        <button class="primary" id="downloadAllBtn" disabled>Download all images</button>
-        <button class="danger" id="clearBtn">Clear all</button>
-
         <label for="watermarkSelect" style="display:block; margin-top:14px;">Watermark file</label>
-        <select id="watermarkSelect" style="width:100%; padding:10px; border-radius:10px; border:1px solid #4b5563; background:#111827; color:#f9fafb; margin-top:8px;">
+        <select id="watermarkSelect">
           <option value="watermark.png">watermark.png</option>
           <option value="watermark2.png">watermark2.png</option>
           <option value="watermark3.png">watermark3.png</option>
@@ -175,11 +149,43 @@
           <option value="watermark5.png">watermark5.png</option>
         </select>
 
+        <h3 style="margin-top:18px;">Quick enhance</h3>
+        <p style="margin: 0 0 10px; color:#cbd5e1;">Simple controls for flat drone shots. The base photo is adjusted first, then the watermark is added.</p>
+
+        <label for="popRange" style="display:block; margin-top:10px;">Pop: <span id="popValue">20</span></label>
+        <div class="control-row">
+          <input id="popRange" type="range" min="0" max="60" step="10" value="20" />
+          <input id="popInput" type="number" min="0" max="60" step="1" value="20" />
+        </div>
+
+        <label for="greenerRange" style="display:block; margin-top:10px;">Greener: <span id="greenerValue">10</span></label>
+        <div class="control-row">
+          <input id="greenerRange" type="range" min="0" max="40" step="10" value="10" />
+          <input id="greenerInput" type="number" min="0" max="40" step="1" value="10" />
+        </div>
+
+        <label for="brightnessRange" style="display:block; margin-top:10px;">Brightness: <span id="brightnessValue">0</span></label>
+        <div class="control-row">
+          <input id="brightnessRange" type="range" min="80" max="120" step="10" value="100" />
+          <input id="brightnessInput" type="number" min="80" max="120" step="1" value="100" />
+        </div>
+
+        <label for="opacityRange" style="display:block; margin-top:10px;">Watermark opacity: <span id="opacityValue">100</span>%</label>
+        <div class="control-row">
+          <input id="opacityRange" type="range" min="0" max="100" step="10" value="100" />
+          <input id="opacityInput" type="number" min="0" max="100" step="1" value="100" />
+        </div>
+
         <button class="primary" id="autoPresetBtn">Auto preset</button>
+        <button class="secondary" id="resetAdjustmentsBtn">Reset adjustments</button>
+        <button class="secondary" id="downloadCurrentBtn" disabled>Download current image</button>
+        <button class="primary" id="downloadAllBtn" disabled>Download all images</button>
+        <button class="danger" id="clearBtn">Clear all</button>
 
         <p>
           Put up to 5 transparent watermark PNG files in the same folder as <code>index.html</code>. The selected watermark is loaded automatically.
         </p>
+        <div class="status" id="status">Waiting for images.</div>
       </div>
 
       <div class="panel">
@@ -193,32 +199,39 @@
 
   <script>
     const photoInput = document.getElementById('photoInput');
-    const downloadCurrentBtn = document.getElementById('downloadCurrentBtn');
     const watermarkSelect = document.getElementById('watermarkSelect');
     const autoPresetBtn = document.getElementById('autoPresetBtn');
+    const resetAdjustmentsBtn = document.getElementById('resetAdjustmentsBtn');
+    const downloadCurrentBtn = document.getElementById('downloadCurrentBtn');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
     const clearBtn = document.getElementById('clearBtn');
+    const thumbs = document.getElementById('thumbs');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const statusEl = document.getElementById('status');
+
     const popRange = document.getElementById('popRange');
     const popInput = document.getElementById('popInput');
+    const greenerRange = document.getElementById('greenerRange');
     const greenerInput = document.getElementById('greenerInput');
+    const brightnessRange = document.getElementById('brightnessRange');
     const brightnessInput = document.getElementById('brightnessInput');
     const opacityRange = document.getElementById('opacityRange');
     const opacityInput = document.getElementById('opacityInput');
-    const greenerRange = document.getElementById('greenerRange');
-    const brightnessRange = document.getElementById('brightnessRange');
+
     const popValue = document.getElementById('popValue');
-    const opacityValue = document.getElementById('opacityValue');
     const greenerValue = document.getElementById('greenerValue');
     const brightnessValue = document.getElementById('brightnessValue');
-    const resetAdjustmentsBtn = document.getElementById('resetAdjustmentsBtn');
-    const thumbs = document.getElementById('thumbs');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const opacityValue = document.getElementById('opacityValue');
 
     let photos = [];
     let currentIndex = 0;
     let watermarkImage = null;
     let currentWatermarkFile = 'watermark.png';
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
 
     function readFileAsDataURL(file) {
       return new Promise((resolve, reject) => {
@@ -233,7 +246,7 @@
       return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
-        img.onerror = reject;
+        img.onerror = () => reject(new Error('Failed to load image: ' + src));
         img.src = src;
       });
     }
@@ -242,24 +255,13 @@
       currentWatermarkFile = filename;
       try {
         watermarkImage = await loadImage(filename + '?v=' + Date.now());
-        await renderCurrent();
+        setStatus('Loaded ' + filename + '.');
+        if (photos.length) await renderCurrent();
       } catch (err) {
         watermarkImage = null;
-        alert(`Could not load ${filename}. Put ${filename} in the same folder as index.html`);
+        setStatus('Could not load ' + filename + '. Put that file next to index.html.');
+        if (photos.length) await renderCurrent();
       }
-    }
-
-    async function handlePhotos(files) {
-      photos = [];
-      for (const file of files) {
-        const dataUrl = await readFileAsDataURL(file);
-        const img = await loadImage(dataUrl);
-        photos.push({ file, dataUrl, img, name: file.name });
-      }
-      currentIndex = 0;
-      renderThumbs();
-      await renderCurrent();
-      updateButtons();
     }
 
     function updateAdjustmentLabels() {
@@ -267,6 +269,16 @@
       greenerValue.textContent = String(Number(greenerRange.value));
       brightnessValue.textContent = String(Number(brightnessRange.value) - 100);
       opacityValue.textContent = String(Number(opacityRange.value));
+    }
+
+    function clampNumberInput(input, range) {
+      const min = Number(input.min);
+      const max = Number(input.max);
+      let value = Number(input.value);
+      if (Number.isNaN(value)) value = Number(range.value);
+      value = Math.max(min, Math.min(max, value));
+      input.value = String(value);
+      range.value = String(value);
     }
 
     function applyCanvasFilters(targetCtx, width, height, baseImg) {
@@ -308,10 +320,12 @@
     function analyzeImageTone(baseImg) {
       const sample = document.createElement('canvas');
       const sampleCtx = sample.getContext('2d', { willReadFrequently: true });
+      const sourceWidth = baseImg.naturalWidth || baseImg.width;
+      const sourceHeight = baseImg.naturalHeight || baseImg.height;
       const maxDim = 200;
-      const ratio = Math.min(maxDim / baseImg.width, maxDim / baseImg.height, 1);
-      sample.width = Math.max(1, Math.round(baseImg.width * ratio));
-      sample.height = Math.max(1, Math.round(baseImg.height * ratio));
+      const ratio = Math.min(maxDim / sourceWidth, maxDim / sourceHeight, 1);
+      sample.width = Math.max(1, Math.round(sourceWidth * ratio));
+      sample.height = Math.max(1, Math.round(sourceHeight * ratio));
       sampleCtx.drawImage(baseImg, 0, 0, sample.width, sample.height);
       const data = sampleCtx.getImageData(0, 0, sample.width, sample.height).data;
 
@@ -350,26 +364,27 @@
       let brightness = 100;
 
       if (stats.avgSpread < 35) pop = 30;
-      else if (stats.avgSpread < 50) pop = 20;
+      else if (stats.avgSpread < 55) pop = 20;
       else pop = 10;
 
       if (stats.avgLuma < 95) brightness = 110;
-      else if (stats.avgLuma < 125) brightness = 100;
-      else brightness = 90;
+      else if (stats.avgLuma > 155) brightness = 90;
+      else brightness = 100;
 
       if (stats.greenRatio < 0.22) greener = 20;
       else if (stats.greenRatio < 0.32) greener = 10;
       else greener = 0;
 
       popRange.value = String(pop);
-      greenerRange.value = String(greener);
-      brightnessRange.value = String(brightness);
       popInput.value = String(pop);
+      greenerRange.value = String(greener);
       greenerInput.value = String(greener);
+      brightnessRange.value = String(brightness);
       brightnessInput.value = String(brightness);
 
       updateAdjustmentLabels();
       await renderCurrent();
+      setStatus('Auto preset applied.');
     }
 
     function renderThumbs() {
@@ -377,10 +392,7 @@
       photos.forEach((photo, index) => {
         const card = document.createElement('div');
         card.className = 'thumb' + (index === currentIndex ? ' active' : '');
-        card.innerHTML = `
-          <img src="${photo.dataUrl}" alt="${photo.name}">
-          <small>${photo.name}</small>
-        `;
+        card.innerHTML = `<img src="${photo.dataUrl}" alt="${photo.name}"><small>${photo.name}</small>`;
         card.addEventListener('click', async () => {
           currentIndex = index;
           renderThumbs();
@@ -395,19 +407,24 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         return;
       }
-      const baseImg = photos[currentIndex].img;
-      canvas.width = baseImg.naturalWidth || baseImg.width;
-      canvas.height = baseImg.naturalHeight || baseImg.height;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      applyCanvasFilters(ctx, canvas.width, canvas.height, baseImg);
+      const baseImg = photos[currentIndex].img;
+      const width = baseImg.naturalWidth || baseImg.width;
+      const height = baseImg.naturalHeight || baseImg.height;
+      canvas.width = width;
+      canvas.height = height;
+
+      ctx.clearRect(0, 0, width, height);
+      applyCanvasFilters(ctx, width, height, baseImg);
 
       if (watermarkImage) {
         ctx.save();
         ctx.globalAlpha = Number(opacityRange.value) / 100;
-        ctx.drawImage(watermarkImage, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(watermarkImage, 0, 0, width, height);
         ctx.restore();
       }
+
+      setStatus('Showing: ' + photos[currentIndex].name + (watermarkImage ? ' with ' + currentWatermarkFile : ' with no watermark loaded'));
     }
 
     function downloadCanvas(filename) {
@@ -419,17 +436,21 @@
 
     async function renderOffscreen(photo) {
       const off = document.createElement('canvas');
-      const offCtx = off.getContext('2d');
-      off.width = photo.img.naturalWidth || photo.img.width;
-      off.height = photo.img.naturalHeight || photo.img.height;
+      const offCtx = off.getContext('2d', { willReadFrequently: true });
+      const width = photo.img.naturalWidth || photo.img.width;
+      const height = photo.img.naturalHeight || photo.img.height;
+      off.width = width;
+      off.height = height;
 
-      applyCanvasFilters(offCtx, off.width, off.height, photo.img);
+      applyCanvasFilters(offCtx, width, height, photo.img);
+
       if (watermarkImage) {
         offCtx.save();
         offCtx.globalAlpha = Number(opacityRange.value) / 100;
-        offCtx.drawImage(watermarkImage, 0, 0, off.width, off.height);
+        offCtx.drawImage(watermarkImage, 0, 0, width, height);
         offCtx.restore();
       }
+
       return off;
     }
 
@@ -440,7 +461,7 @@
         link.href = off.toDataURL('image/jpeg', 0.95);
         link.download = photo.name.replace(/\.[^/.]+$/, '') + '-watermarked.jpg';
         link.click();
-        await new Promise(resolve => setTimeout(resolve, 250));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
 
@@ -450,19 +471,44 @@
       downloadAllBtn.disabled = !hasPhotos;
     }
 
-    function sync(range, input) {
-      range.addEventListener('input', () => {
+    async function handlePhotos(files) {
+      photos = [];
+      setStatus('Loading images...');
+      for (const file of files) {
+        const dataUrl = await readFileAsDataURL(file);
+        const img = await loadImage(dataUrl);
+        photos.push({ file, dataUrl, img, name: file.name });
+      }
+      currentIndex = 0;
+      renderThumbs();
+      updateButtons();
+      await renderCurrent();
+    }
+
+    function connectRangeAndInput(range, input, rerender = true) {
+      range.addEventListener('input', async () => {
         input.value = range.value;
+        updateAdjustmentLabels();
+        if (rerender && photos.length) await renderCurrent();
       });
-      input.addEventListener('input', () => {
-        range.value = input.value;
+
+      input.addEventListener('input', async () => {
+        clampNumberInput(input, range);
+        updateAdjustmentLabels();
+        if (rerender && photos.length) await renderCurrent();
       });
     }
 
-    sync(popRange, popInput);
-    sync(greenerRange, greenerInput);
-    sync(brightnessRange, brightnessInput);
-    sync(opacityRange, opacityInput);
+    connectRangeAndInput(popRange, popInput);
+    connectRangeAndInput(greenerRange, greenerInput);
+    connectRangeAndInput(brightnessRange, brightnessInput);
+    connectRangeAndInput(opacityRange, opacityInput);
+
+    photoInput.addEventListener('change', async (e) => {
+      const files = [...e.target.files];
+      if (!files.length) return;
+      await handlePhotos(files);
+    });
 
     watermarkSelect.addEventListener('change', async () => {
       await loadWatermark(watermarkSelect.value);
@@ -470,8 +516,18 @@
 
     autoPresetBtn.addEventListener('click', runAutoPreset);
 
-    photoInput.addEventListener('change', async (e) => {
-      await handlePhotos([...e.target.files]);
+    resetAdjustmentsBtn.addEventListener('click', async () => {
+      popRange.value = '20';
+      popInput.value = '20';
+      greenerRange.value = '10';
+      greenerInput.value = '10';
+      brightnessRange.value = '100';
+      brightnessInput.value = '100';
+      opacityRange.value = '100';
+      opacityInput.value = '100';
+      updateAdjustmentLabels();
+      if (photos.length) await renderCurrent();
+      setStatus('Adjustments reset.');
     });
 
     downloadCurrentBtn.addEventListener('click', () => {
@@ -481,37 +537,16 @@
 
     downloadAllBtn.addEventListener('click', downloadAll);
 
-    [popRange, greenerRange, brightnessRange, opacityRange].forEach(control => {
-      control.addEventListener('input', async () => {
-        updateAdjustmentLabels();
-        await renderCurrent();
-      });
-    });
-
-    resetAdjustmentsBtn.addEventListener('click', async () => {
-      popRange.value = '20';
-      greenerRange.value = '10';
-      brightnessRange.value = '100';
-      opacityRange.value = '100';
-
-      popInput.value = '20';
-      greenerInput.value = '10';
-      brightnessInput.value = '100';
-      opacityInput.value = '100';
-
-      updateAdjustmentLabels();
-      await renderCurrent();
-    }););
-
     clearBtn.addEventListener('click', () => {
       photos = [];
       currentIndex = 0;
       photoInput.value = '';
       thumbs.innerHTML = '';
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
       canvas.width = 300;
       canvas.height = 150;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       updateButtons();
+      setStatus('Waiting for images.');
     });
 
     canvas.width = 300;
