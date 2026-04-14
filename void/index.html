@@ -13,7 +13,7 @@
       color: #f9fafb;
     }
     .wrap {
-      max-width: 1100px;
+      max-width: 1120px;
       margin: 0 auto;
       padding: 24px;
     }
@@ -27,7 +27,7 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: 340px 1fr;
       gap: 20px;
       margin-top: 20px;
     }
@@ -108,7 +108,7 @@
     }
     .control-row {
       display: grid;
-      grid-template-columns: 1fr 80px;
+      grid-template-columns: 1fr 86px;
       gap: 8px;
       align-items: center;
     }
@@ -116,6 +116,11 @@
       margin-top: 10px;
       font-size: 13px;
       color: #cbd5e1;
+    }
+    .hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
     }
     code {
       background: #111827;
@@ -131,8 +136,8 @@
   <div class="wrap">
     <h1>Simple Watermark Tool</h1>
     <p>
-      Upload your photos, adjust them quickly, and this page will place the selected watermark PNG on top.
-      Put <code>index.html</code> and your watermark files in the same GitHub Pages folder.
+      Upload your photos, lightly enhance them, and place a selected watermark PNG on top.
+      Keep <code>index.html</code> and your watermark files in the same GitHub Pages folder.
     </p>
 
     <div class="grid">
@@ -150,7 +155,9 @@
         </select>
 
         <h3 style="margin-top:18px;">Quick enhance</h3>
-        <p style="margin: 0 0 10px; color:#cbd5e1;">Simple controls for flat drone shots. The base photo is adjusted first, then the watermark is added.</p>
+        <p style="margin: 0 0 10px; color:#cbd5e1;">
+          Grass boost is selective. It tries to enrich lawn-like greens without tinting the whole image green.
+        </p>
 
         <label for="popRange" style="display:block; margin-top:10px;">Pop: <span id="popValue">20</span></label>
         <div class="control-row">
@@ -163,6 +170,7 @@
           <input id="grassBoostRange" type="range" min="0" max="25" step="1" value="12" />
           <input id="grassBoostInput" type="number" min="0" max="25" step="1" value="12" />
         </div>
+        <div class="hint">Use this lightly. 6–14 is usually enough.</div>
 
         <label for="brightnessRange" style="display:block; margin-top:10px;">Brightness: <span id="brightnessValue">0</span></label>
         <div class="control-row">
@@ -183,7 +191,7 @@
         <button class="danger" id="clearBtn">Clear all</button>
 
         <p>
-          Put up to 5 transparent watermark PNG files in the same folder as <code>index.html</code>. The selected watermark is loaded automatically.
+          Put up to 5 transparent watermark PNG files in the same folder as <code>index.html</code>. Missing watermark files will be skipped safely.
         </p>
         <div class="status" id="status">Waiting for images.</div>
       </div>
@@ -220,7 +228,7 @@
     const opacityInput = document.getElementById('opacityInput');
 
     const popValue = document.getElementById('popValue');
-    const greenerValue = document.getElementById('greenerValue');
+    const grassBoostValue = document.getElementById('grassBoostValue');
     const brightnessValue = document.getElementById('brightnessValue');
     const opacityValue = document.getElementById('opacityValue');
 
@@ -259,14 +267,14 @@
         if (photos.length) await renderCurrent();
       } catch (err) {
         watermarkImage = null;
-        setStatus('Could not load ' + filename + '. Put that file next to index.html.');
+        setStatus('Could not load ' + filename + '. Preview still works without watermark.');
         if (photos.length) await renderCurrent();
       }
     }
 
     function updateAdjustmentLabels() {
       popValue.textContent = String(Number(popRange.value));
-      greenerValue.textContent = String(Number(greenerRange.value));
+      grassBoostValue.textContent = String(Number(grassBoostRange.value));
       brightnessValue.textContent = String(Number(brightnessRange.value) - 100);
       opacityValue.textContent = String(Number(opacityRange.value));
     }
@@ -281,10 +289,20 @@
       range.value = String(value);
     }
 
+    function isLikelyGrass(r, g, b) {
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const spread = max - min;
+      const greenDominant = g >= r * 0.95 && g >= b * 1.03;
+      const notTooDark = g > 45;
+      const notTooGray = spread > 12;
+      return greenDominant && notTooDark && notTooGray;
+    }
+
     function applyCanvasFilters(targetCtx, width, height, baseImg) {
       const brightness = Number(brightnessRange.value) / 100;
       const pop = Number(popRange.value);
-      const greener = Number(greenerRange.value);
+      const grassBoost = Number(grassBoostRange.value);
       const contrast = 1 + pop * 0.004;
       const saturation = 1 + pop * 0.006;
 
@@ -292,6 +310,8 @@
       targetCtx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
       targetCtx.drawImage(baseImg, 0, 0, width, height);
       targetCtx.restore();
+
+      if (grassBoost <= 0) return;
 
       const imgData = targetCtx.getImageData(0, 0, width, height);
       const data = imgData.data;
@@ -301,11 +321,17 @@
         let g = data[i + 1];
         let b = data[i + 2];
 
-        const greenBoost = greener * 0.9;
-        const redTrim = greener * 0.15;
-        const blueTrim = greener * 0.08;
+        if (!isLikelyGrass(r, g, b)) {
+          continue;
+        }
+
+        const greenBoost = grassBoost * 0.35;
+        const yellowLift = grassBoost * 0.10;
+        const blueTrim = grassBoost * 0.06;
+        const redTrim = grassBoost * 0.03;
 
         g += greenBoost;
+        r += yellowLift;
         r -= redTrim;
         b -= blueTrim;
 
@@ -331,7 +357,7 @@
 
       let totalLuma = 0;
       let totalColorSpread = 0;
-      let greenishPixels = 0;
+      let grassishPixels = 0;
       let count = 0;
 
       for (let i = 0; i < data.length; i += 4) {
@@ -343,14 +369,14 @@
         const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
         totalLuma += luma;
         totalColorSpread += (max - min);
-        if (g > r && g > b) greenishPixels += 1;
+        if (isLikelyGrass(r, g, b)) grassishPixels += 1;
         count += 1;
       }
 
       return {
         avgLuma: totalLuma / count,
         avgSpread: totalColorSpread / count,
-        greenRatio: greenishPixels / count
+        grassRatio: grassishPixels / count
       };
     }
 
@@ -360,7 +386,7 @@
       const stats = analyzeImageTone(baseImg);
 
       let pop = 20;
-      let greener = 10;
+      let grassBoost = 12;
       let brightness = 100;
 
       if (stats.avgSpread < 35) pop = 30;
@@ -371,14 +397,15 @@
       else if (stats.avgLuma > 155) brightness = 90;
       else brightness = 100;
 
-      if (stats.greenRatio < 0.22) greener = 20;
-      else if (stats.greenRatio < 0.32) greener = 10;
-      else greener = 0;
+      if (stats.grassRatio < 0.15) grassBoost = 16;
+      else if (stats.grassRatio < 0.28) grassBoost = 12;
+      else if (stats.grassRatio < 0.40) grassBoost = 8;
+      else grassBoost = 5;
 
       popRange.value = String(pop);
       popInput.value = String(pop);
-      greenerRange.value = String(greener);
-      greenerInput.value = String(greener);
+      grassBoostRange.value = String(grassBoost);
+      grassBoostInput.value = String(grassBoost);
       brightnessRange.value = String(brightness);
       brightnessInput.value = String(brightness);
 
@@ -500,14 +527,19 @@
     }
 
     connectRangeAndInput(popRange, popInput);
-    connectRangeAndInput(greenerRange, greenerInput);
+    connectRangeAndInput(grassBoostRange, grassBoostInput);
     connectRangeAndInput(brightnessRange, brightnessInput);
     connectRangeAndInput(opacityRange, opacityInput);
 
     photoInput.addEventListener('change', async (e) => {
       const files = [...e.target.files];
       if (!files.length) return;
-      await handlePhotos(files);
+      try {
+        await handlePhotos(files);
+      } catch (err) {
+        console.error(err);
+        setStatus('Could not read one or more selected images.');
+      }
     });
 
     watermarkSelect.addEventListener('change', async () => {
@@ -519,8 +551,8 @@
     resetAdjustmentsBtn.addEventListener('click', async () => {
       popRange.value = '20';
       popInput.value = '20';
-      greenerRange.value = '10';
-      greenerInput.value = '10';
+      grassBoostRange.value = '12';
+      grassBoostInput.value = '12';
       brightnessRange.value = '100';
       brightnessInput.value = '100';
       opacityRange.value = '100';
